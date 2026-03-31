@@ -5,7 +5,7 @@
 # <simon.o2000dev@gmail.com>
 # github.com/o2000dev
 cmake_minimum_required(VERSION 3.31)
-project(visu-maps-enngine LANGUAGES CXX C)
+project(visu-maps-engine LANGUAGES CXX C)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
