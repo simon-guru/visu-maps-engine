@@ -14,7 +14,8 @@ Aplicações host por plataforma que embutem o engine.
 - bootstrap do engine;
 - ciclo de vida por plataforma;
 - bridge de eventos de input/sensores;
-- superfície de render integrada ao host.
+- superfície de render integrada ao host;
+- ingestão de eventos de marcadores em tempo real.
 
 ## Status
 
