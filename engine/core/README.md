@@ -19,16 +19,26 @@ Estabelecer a fundação técnica do engine para que `render`, `gfx`, `tiles`, `
 ```text
 engine/core/
 ├── README.md
+├── CMakeLists.txt
 ├── include/
 │   ├── README.md
 │   └── engine/core/
-│       ├── types/README.md
-│       ├── lifecycle/README.md
-│       ├── contracts/README.md
+│       ├── types/
+│       │   ├── README.md
+│       │   └── engine_models.hpp
+│       ├── lifecycle/
+│       │   ├── README.md
+│       │   └── engine_lifecycle_controller.hpp
+│       ├── contracts/
+│       │   ├── README.md
+│       │   └── i_engine_lifecycle.hpp
 │       └── utils/README.md
 ├── src/
 │   ├── README.md
-│   ├── lifecycle/README.md
+│   ├── types_engine_models.cpp
+│   ├── lifecycle/
+│   │   ├── README.md
+│   │   └── engine_lifecycle_controller.cpp
 │   ├── contracts/README.md
 │   └── utils/README.md
 ├── tests/
@@ -38,6 +48,13 @@ engine/core/
 └── cmake/
     └── README.md
 ```
+
+## Entregas concluídas
+
+- primeira versão de `EngineConfig`, `EngineState` e `EngineError`;
+- contrato mínimo de inicialização/encerramento (`IEngineLifecycle`);
+- implementação padrão de lifecycle (`EngineLifecycleController`);
+- esqueleto CMake do target `engine_core`.
 
 ## Critérios arquiteturais para esta fase
 
@@ -54,10 +71,3 @@ engine/core/
 3. consolidar contratos compartilhados em `include/engine/core/contracts`;
 4. implementar comportamentos em `src/*`;
 5. validar em `tests/unit` e `tests/integration`.
-
-## Próximas entregas
-
-- primeira versão de `EngineConfig`, `EngineState` e `EngineError`;
-- contrato mínimo de inicialização/encerramento (`IEngineLifecycle`);
-- base de logging e tracing com metadados de frame;
-- esqueleto CMake do target `engine_core`.
