@@ -6,6 +6,14 @@ Implementação interna do `engine/core`.
 
 Conter implementações concretas dos contratos públicos expostos em `engine/core/include`.
 
+## Implementações registradas
+
+- `types_engine_models.cpp`
+  - implementação de `to_string(EngineState)`;
+  - implementação de `to_string(EngineErrorSeverity)`.
+- `lifecycle/engine_lifecycle_controller.cpp`
+  - implementação concreta do lifecycle (`initialize`, `tick`, `shutdown`, `state`).
+
 ## Regras desta fase
 
 - preservar separação clara entre interface (include) e implementação (src);
