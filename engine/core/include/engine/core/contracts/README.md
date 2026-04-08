@@ -16,8 +16,11 @@ Este diretório concentra contratos transversais, por exemplo:
   - interface `IEngineLifecycle` com operações:
     - `initialize(const EngineConfig&)`;
     - `tick(const FrameContext&)`;
+    - `pause()`;
+    - `resume()`;
     - `shutdown()`;
-    - `state() const`.
+    - `state() const`;
+    - `config() const`.
 
 ## Diretrizes
 

@@ -13,7 +13,7 @@ Contratos e tipos públicos do ciclo de vida da engine.
 - `engine/core/lifecycle/engine_lifecycle_controller.hpp`
   - classe `EngineLifecycleController`;
   - implementação padrão do contrato `IEngineLifecycle`;
-  - transições de estado para bootstrap/tick/shutdown.
+  - transições de estado para bootstrap/tick/pause/resume/shutdown.
 
 ## Objetivo da fase
 

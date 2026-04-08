@@ -25,3 +25,5 @@ Concentrar headers estáveis consumidos pelos demais módulos do engine e pelas 
 - `types/engine_models.hpp` com modelos base e helpers de serialização.
 - `contracts/i_engine_lifecycle.hpp` com contrato mínimo de runtime.
 - `lifecycle/engine_lifecycle_controller.hpp` com implementação padrão pública de lifecycle.
+
+- facade de compatibilidade: `engine/core/i_engine_lifecycle.hpp` encaminhando para `contracts/i_engine_lifecycle.hpp`.

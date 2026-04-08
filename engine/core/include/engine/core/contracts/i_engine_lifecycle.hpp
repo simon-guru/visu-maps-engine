@@ -1,7 +1,7 @@
 /*
 # Copyright (c) 2026. VISU LLC. All rights reserved.
 # Author: Simão A.Mayunga
-# Date: 02/04/2026
+# Date: 08/04/2026
 # This file is part of VISU LLC.
 */
 
@@ -12,9 +12,10 @@
 namespace vme::engine::core::contracts {
 
 /**
- * @brief Contrato mínimo para lifecycle do runtime da engine.
+ * @brief Contrato base para lifecycle do runtime da engine.
  *
- * Inicializa recursos, executa ticks de frame e conduz shutdown seguro.
+ * Nesta revisão, o contrato foi expandido para cobrir também pausa/retomada
+ * e leitura da configuração efetivamente carregada.
  */
 class IEngineLifecycle {
 public:
@@ -31,6 +32,16 @@ public:
     virtual types::EngineError tick(const types::FrameContext& frame_context) = 0;
 
     /**
+     * @brief Pausa a execução do runtime sem desalocar recursos.
+     */
+    virtual types::EngineError pause() = 0;
+
+    /**
+     * @brief Retoma a execução após estado de pausa.
+     */
+    virtual types::EngineError resume() = 0;
+
+    /**
      * @brief Encerra runtime e libera recursos.
      */
     virtual types::EngineError shutdown() = 0;
@@ -39,6 +50,11 @@ public:
      * @brief Retorna o estado atual do lifecycle.
      */
     [[nodiscard]] virtual types::EngineState state() const noexcept = 0;
+
+    /**
+     * @brief Retorna a configuração carregada no bootstrap.
+     */
+    [[nodiscard]] virtual const types::EngineConfig& config() const noexcept = 0;
 };
 
 }  // namespace vme::engine::core::contracts
