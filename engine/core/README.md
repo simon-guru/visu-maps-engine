@@ -67,6 +67,35 @@ engine/core/
 
 ---
 
+## Matriz de Transições do Lifecycle (baseline atual)
+
+Esta matriz documenta o comportamento **implementado hoje** em `EngineLifecycleController`, com base em `engine/core/src/lifecycle/engine_lifecycle_controller.cpp`.
+
+> Referência de códigos de erro:
+> - `1001`: transição inválida em `initialize` (estado diferente de `Uninitialized`);
+> - `1002`: `EngineConfig` inválido em `initialize`;
+> - `1003`: transição inválida em `tick` (estado diferente de `Running`/`Initialized`);
+> - `1004`: `FrameContext` inválido (`delta_time` negativo) em `tick`;
+> - `1005`: transição inválida em `shutdown` com engine `Uninitialized`;
+> - `1006`: transição inválida em `pause` (estado diferente de `Running`);
+> - `1007`: transição inválida em `resume` (estado diferente de `Paused`).
+
+| Estado atual \ Método | `initialize` | `tick` | `pause` | `resume` | `shutdown` |
+|---|---|---|---|---|---|
+| `Uninitialized` | **OK → `Initialized`** (se config válida) \| **erro `1002`** (config inválida, permanece `Uninitialized`) | **erro `1003`** | **erro `1006`** | **erro `1007`** | **erro `1005`** |
+| `Initialized` | **erro `1001`** | **OK → `Running`** (se frame válido) \| **erro `1004`** (`delta_time` negativo; estado já promovido para `Running`) | **erro `1006`** | **erro `1007`** | **OK → `Stopped`** (passando internamente por `Stopping`) |
+| `Running` | **erro `1001`** | **OK → `Running`** \| **erro `1004`** (`delta_time` negativo, permanece `Running`) | **OK → `Paused`** | **erro `1007`** | **OK → `Stopped`** (passando internamente por `Stopping`) |
+| `Paused` | **erro `1001`** | **erro `1003`** | **erro `1006`** | **OK → `Running`** | **OK → `Stopped`** (passando internamente por `Stopping`) |
+| `Stopping` | **erro `1001`** | **erro `1003`** | **erro `1006`** | **erro `1007`** | **OK → `Stopping`** (idempotente; sem mudança de estado) |
+| `Stopped` | **erro `1001`** | **erro `1003`** | **erro `1006`** | **erro `1007`** | **OK → `Stopped`** (idempotente) |
+
+### Observações de semântica relevante
+
+- `tick` chamado em `Initialized` promove o estado para `Running` **antes** da validação de `delta_time`; portanto, se ocorrer erro `1004`, o estado já está em `Running`.
+- Em estados `Stopping` e `Stopped`, `shutdown` retorna sucesso idempotente, sem forçar nova transição.
+
+---
+
 ## Próximas fases / etapas
 
 ## Fase 1 — Consolidação de Contratos (curto prazo)
