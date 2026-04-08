@@ -174,6 +174,29 @@ O `EngineLifecycleController` aceita injeção opcional de logger via construtor
 - `message`;
 - `fields` chave-valor com diagnósticos.
 
+## Gate de performance de observabilidade (`tick`)
+
+Para evitar regressões grosseiras de custo, o core adota um microbenchmark de referência em
+`tests/performance/tick_observability_benchmark.cpp` com comparação direta entre:
+
+- `tick()` com observabilidade de frame **desabilitada** (`enable_frame_trace=false`);
+- `tick()` com observabilidade de frame **habilitada** (`enable_frame_trace=true`).
+
+### Critério de aceite (baseline inicial)
+
+- métrica: razão média `overhead_ratio = avg_tick_on / avg_tick_off`;
+- limite aceitável: `overhead_ratio <= 1.50` (até **50%** de overhead);
+- comportamento de gate: execução falha quando razão excede o limite.
+
+### Uso recomendado no gate local/CI
+
+- executar benchmark com volume mínimo estável (ex.: `200000` iterações);
+- repetir ao menos 2x e considerar o pior valor para decisão;
+- bloquear merge quando qualquer execução ultrapassar o limite.
+
+> Observação: este limite é deliberadamente conservador para a Fase 0/Fase 1 e deve ser
+> reduzido conforme otimizações e maturidade da pipeline de observabilidade.
+
 ## Próximas fases / etapas
 
 ## Fase 1 — Consolidação de Contratos (curto prazo)
