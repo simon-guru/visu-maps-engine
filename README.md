@@ -1,5 +1,17 @@
 # visu-maps-engine
 
+## Status de implementação do engine-core
+
+Em **02/04/2026**, o módulo `engine/core` passou a incluir implementação inicial de código em C++ para:
+
+- modelos fundamentais (`EngineConfig`, `EngineState`, `EngineError`, `FrameContext`);
+- contrato de lifecycle (`IEngineLifecycle`);
+- implementação padrão de lifecycle (`EngineLifecycleController`);
+- target CMake `engine_core`.
+
+A documentação técnica dessas declarações e implementações está nos READMEs internos de `engine/core/include/*` e `engine/core/src/*`.
+
+
 ## Funcionalidades
 
 O **VME (visu-maps-engine)** pode ser configurado para operar como uma plataforma de mapas personalizável e orientada a eventos em tempo real.
