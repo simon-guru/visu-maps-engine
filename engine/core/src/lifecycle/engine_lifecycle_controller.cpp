@@ -8,6 +8,7 @@
 // Implementação padrão da máquina de lifecycle do core.
 #include "engine/core/lifecycle/engine_lifecycle_controller.hpp"
 
+#include <chrono>
 #include <string>
 #include <vector>
 
@@ -26,12 +27,18 @@ namespace {
 constexpr char kLifecycleModule[] = "engine.core.lifecycle";
 }  // namespace
 
-EngineLifecycleController::EngineLifecycleController(contracts::IEngineLogger* logger) noexcept
-    : logger_ {logger} {}
+EngineLifecycleController::EngineLifecycleController(
+    contracts::IEngineLogger* logger, contracts::IEngineTracer* tracer) noexcept
+    : logger_ {logger}, tracer_ {tracer} {}
 
 void EngineLifecycleController::set_logger(contracts::IEngineLogger* logger) noexcept {
     std::scoped_lock lock {mutex_};
     logger_ = logger;
+}
+
+void EngineLifecycleController::set_tracer(contracts::IEngineTracer* tracer) noexcept {
+    std::scoped_lock lock {mutex_};
+    tracer_ = tracer;
 }
 
 // Realiza bootstrap inicial.
@@ -103,6 +110,9 @@ EngineError EngineLifecycleController::tick(const FrameContext& frame_context) {
     if (state_ == EngineState::Initialized) {
         state_ = EngineState::Running;
     }
+
+    // Tracing de frame é emitido apenas quando explicitamente habilitado.
+    trace_frame_event(frame_context);
 
     // Sem trabalho adicional nesta fase: sucesso no tick.
     const auto result = EngineError {};
@@ -230,6 +240,26 @@ void EngineLifecycleController::log_lifecycle_event(
     };
 
     logger_->log(payload);
+}
+
+
+void EngineLifecycleController::trace_frame_event(const FrameContext& frame_context) const {
+    // Caminho desabilitado: retorna antes de qualquer custo de normalização/alocação.
+    if (!config_.enable_frame_trace || tracer_ == nullptr) {
+        return;
+    }
+
+    // Formato estável para exportação: nanossegundos inteiros assinados.
+    const auto delta_time_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+        frame_context.delta_time);
+    const auto timestamp_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+        frame_context.timestamp.time_since_epoch());
+
+    tracer_->trace_frame(types::FrameTraceEvent {
+        .frame_index = frame_context.frame_index,
+        .delta_time = delta_time_ns.count(),
+        .timestamp = timestamp_ns.count(),
+    });
 }
 
 }  // namespace vme::engine::core::lifecycle
