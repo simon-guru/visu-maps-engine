@@ -4,7 +4,7 @@ Tipos fundamentais do engine.
 
 ## Escopo
 
-Nesta fase, este diretório evoluiu para conter os modelos-base do core:
+Nesta fase, este diretório contém os modelos-base do core:
 
 - `EngineState`: enum de estado global (`Uninitialized`, `Initialized`, `Running`, `Paused`, `Stopping`, `Stopped`);
 - `EngineErrorSeverity`: classificação semântica de erro (`Info`, `Warning`, `Recoverable`, `Fatal`);
@@ -18,6 +18,15 @@ Nesta fase, este diretório evoluiu para conter os modelos-base do core:
 As declarações estão em:
 
 - `engine/core/types/engine_models.hpp`
+
+## Comentários detalhados no código
+
+O header foi documentado com comentários precisos explicando:
+
+- a responsabilidade de cada tipo;
+- o motivo de uso de `enum class` (tipagem forte e segurança);
+- o papel operacional de cada campo de configuração e frame;
+- a finalidade diagnóstica dos helpers `to_string(...)`.
 
 ## Diretrizes
 

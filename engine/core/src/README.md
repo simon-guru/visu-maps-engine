@@ -12,7 +12,15 @@ Conter implementações concretas dos contratos públicos expostos em `engine/co
   - implementação de `to_string(EngineState)`;
   - implementação de `to_string(EngineErrorSeverity)`.
 - `lifecycle/engine_lifecycle_controller.cpp`
-  - implementação concreta do lifecycle (`initialize`, `tick`, `shutdown`, `state`).
+  - implementação concreta do lifecycle (`initialize`, `tick`, `pause`, `resume`, `shutdown`, `state`, `config`).
+
+## Comentários detalhados no código
+
+As fontes `.cpp` foram atualizadas com comentários de responsabilidade e motivação de abordagem para:
+
+- serialização de estados/severidades;
+- validação de invariantes temporais do frame;
+- gestão de transições de lifecycle com previsibilidade operacional.
 
 ## Regras desta fase
 

@@ -5,23 +5,29 @@
 # This file is part of VISU LLC.
 */
 
+// Implementação padrão da máquina de lifecycle do core.
 #include "engine/core/lifecycle/engine_lifecycle_controller.hpp"
 
 namespace vme::engine::core::lifecycle {
 
+// Aliases locais para reduzir verbosidade e manter legibilidade no .cpp.
 using types::EngineConfig;
 using types::EngineError;
 using types::EngineErrorSeverity;
 using types::EngineState;
 using types::FrameContext;
 
+// Realiza bootstrap inicial.
 EngineError EngineLifecycleController::initialize(const EngineConfig& config) {
+    // Lock de escopo para garantir atomicidade das transições.
     std::scoped_lock lock {mutex_};
 
+    // Rejeita bootstrap fora do estado inicial para evitar reinit inconsistente.
     if (state_ != EngineState::Uninitialized) {
         return invalid_transition_error(1001U, "initialize requer estado Uninitialized.");
     }
 
+    // Valida invariantes mínimas da configuração antes de aplicá-la.
     if (!config.is_valid()) {
         return EngineError {
             .code = 1002U,
@@ -30,22 +36,30 @@ EngineError EngineLifecycleController::initialize(const EngineConfig& config) {
         };
     }
 
+    // Persiste configuração efetiva para futuras consultas diagnósticas.
     config_ = config;
+    // Marca bootstrap concluído.
     state_ = EngineState::Initialized;
+    // Retorno de sucesso.
     return EngineError {};
 }
 
+// Processa um frame.
 EngineError EngineLifecycleController::tick(const FrameContext& frame_context) {
+    // Lock para garantir leitura/escrita consistente de estado e contexto interno.
     std::scoped_lock lock {mutex_};
 
+    // Primeira chamada de tick após initialize promove o estado para running.
     if (state_ == EngineState::Initialized) {
         state_ = EngineState::Running;
     }
 
+    // Tick é permitido somente em execução efetiva.
     if (state_ != EngineState::Running) {
         return invalid_transition_error(1003U, "tick requer estado Running ou Initialized.");
     }
 
+    // Delta negativo viola invariantes temporais do frame loop.
     if (frame_context.delta_time < FrameContext::Clock::duration::zero()) {
         return EngineError {
             .code = 1004U,
@@ -54,61 +68,80 @@ EngineError EngineLifecycleController::tick(const FrameContext& frame_context) {
         };
     }
 
+    // Sem trabalho adicional nesta fase: sucesso no tick.
     return EngineError {};
 }
 
+// Pausa execução sem desligar runtime.
 EngineError EngineLifecycleController::pause() {
+    // Lock protege transição de estado.
     std::scoped_lock lock {mutex_};
 
+    // Pausa só é válida durante execução ativa.
     if (state_ != EngineState::Running) {
         return invalid_transition_error(1006U, "pause requer estado Running.");
     }
 
+    // Aplica transição running -> paused.
     state_ = EngineState::Paused;
     return EngineError {};
 }
 
+// Retoma execução após pausa.
 EngineError EngineLifecycleController::resume() {
+    // Lock protege transição de estado.
     std::scoped_lock lock {mutex_};
 
+    // Resume só é válido a partir de paused.
     if (state_ != EngineState::Paused) {
         return invalid_transition_error(1007U, "resume requer estado Paused.");
     }
 
+    // Aplica transição paused -> running.
     state_ = EngineState::Running;
     return EngineError {};
 }
 
+// Encerra runtime de forma ordenada.
 EngineError EngineLifecycleController::shutdown() {
+    // Lock para serializar mudança de estado durante encerramento.
     std::scoped_lock lock {mutex_};
 
+    // Define rotas válidas de encerramento.
     switch (state_) {
+        // Estados ativos podem iniciar parada.
         case EngineState::Initialized:
         case EngineState::Running:
         case EngineState::Paused:
             state_ = EngineState::Stopping;
             break;
+        // Se já está parando/parado, shutdown é tratado como idempotente.
         case EngineState::Stopping:
         case EngineState::Stopped:
             return EngineError {};
+        // Não há shutdown válido sem bootstrap prévio.
         case EngineState::Uninitialized:
             return invalid_transition_error(1005U, "shutdown requer engine inicializada.");
     }
 
+    // Finaliza parada.
     state_ = EngineState::Stopped;
     return EngineError {};
 }
 
+// Retorna estado atual de forma thread-safe.
 EngineState EngineLifecycleController::state() const noexcept {
     std::scoped_lock lock {mutex_};
     return state_;
 }
 
+// Retorna configuração efetiva carregada no bootstrap.
 const EngineConfig& EngineLifecycleController::config() const noexcept {
     std::scoped_lock lock {mutex_};
     return config_;
 }
 
+// Centraliza construção de erros de transição inválida.
 EngineError EngineLifecycleController::invalid_transition_error(
     const std::uint32_t code,
     const char* message,

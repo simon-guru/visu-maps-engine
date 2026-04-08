@@ -21,6 +21,16 @@ Este diretório concentra contratos transversais, por exemplo:
     - `shutdown()`;
     - `state() const`;
     - `config() const`.
+- `engine/core/i_engine_lifecycle.hpp`
+  - facade de compatibilidade de include path para consumidores externos.
+
+## Comentários detalhados no código
+
+Os headers de contrato foram atualizados para explicar com precisão:
+
+- a responsabilidade de cada método do lifecycle;
+- as razões de design da interface (estabilidade, desacoplamento e inspeção diagnóstica);
+- o motivo da facade de include (compatibilidade e encapsulamento da estrutura interna).
 
 ## Diretrizes
 

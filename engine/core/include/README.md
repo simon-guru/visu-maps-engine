@@ -27,3 +27,8 @@ Concentrar headers estáveis consumidos pelos demais módulos do engine e pelas 
 - `lifecycle/engine_lifecycle_controller.hpp` com implementação padrão pública de lifecycle.
 
 - facade de compatibilidade: `engine/core/i_engine_lifecycle.hpp` encaminhando para `contracts/i_engine_lifecycle.hpp`.
+
+
+## Documentação de comentários no código
+
+Nesta fase, os headers públicos foram enriquecidos com comentários detalhados descrevendo responsabilidades, decisões de design e razões das abordagens adotadas em cada bloco relevante da API.

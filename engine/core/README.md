@@ -52,6 +52,11 @@ engine/core/
     └── README.md
 ```
 
+### Critério adicional de documentação aplicado
+
+- headers e fontes do core devem conter comentários detalhados explicando responsabilidade, motivo da abordagem e intenção de manutenção de cada bloco funcional relevante;
+- READMEs dos subdiretórios devem refletir essas decisões e mapear onde cada responsabilidade está implementada.
+
 ### Critérios arquiteturais desta fase
 
 - `include/` define API pública estável;
