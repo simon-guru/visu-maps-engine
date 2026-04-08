@@ -2,6 +2,14 @@
 
 Tipos fundamentais e contratos estáveis do engine.
 
+## Glossário conceitual
+
+- **Payload canônico**: estrutura de dados padronizada e estável para integração entre módulos/sistemas.
+- **Envelope de observabilidade**: contêiner comum que agrega metadados de emissão e um sinal tipado (log, trace ou lifecycle).
+- **Sinal de observabilidade**: unidade de informação exportável para diagnóstico/monitoramento.
+- **Severidade**: classificação da criticidade do evento para priorização operacional.
+
+
 ## Escopo
 
 Nesta fase, este diretório contém os modelos-base do core:
@@ -15,6 +23,8 @@ Nesta fase, este diretório contém os modelos-base do core:
 - `EngineLifecycleOperation`/`EngineLifecycleEventPhase`: enum de operação/fase para observabilidade de lifecycle;
 - `EngineLifecycleEvent`: payload canônico (`operation`, `phase`, `state_before`, `state_after`, `error_code`, `error_message`);
 - `lifecycle_error::*`: catálogo de códigos/mensagens estáveis do lifecycle.
+- `EngineObservabilitySignal`: variante canônica para `EngineLogPayload`, `FrameTraceEvent` e `EngineLifecycleEvent`.
+- `EngineObservabilityEnvelope`: envelope canônico com `emitted_at_ns`, `source` e `signal`.
 
 ## Declarações públicas
 
@@ -23,6 +33,7 @@ As declarações estão em:
 - `engine/core/types/engine_models.hpp`
 - `engine/core/types/engine_lifecycle_events.hpp`
 - `engine/core/types/engine_error_codes.hpp`
+- `engine/core/types/engine_observability.hpp`
 
 ## Catálogo de erros do lifecycle (estável para host)
 

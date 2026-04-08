@@ -2,6 +2,15 @@
 
 Implementação do fluxo de ciclo de vida da engine.
 
+## Glossário conceitual
+
+- **Orquestração de lifecycle**: coordenação determinística das transições de estado do runtime.
+- **Transição inválida**: chamada fora das pré-condições de estado previstas no contrato.
+- **Eventos de lifecycle**: sinais emitidos nas fases `attempt`, `success` e `failure` de cada operação.
+- **Tracing de frame**: telemetria temporal por frame (`frame_index`, `delta_time`, `timestamp`).
+- **Pipeline de observabilidade**: fluxo de exportação de sinais para zero, um ou múltiplos sinks registrados.
+
+
 ## Escopo
 
 - máquina de estados de lifecycle;

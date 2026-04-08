@@ -2,6 +2,13 @@
 
 API pública do `engine/core`.
 
+## Glossário conceitual
+
+- **API pública**: headers estáveis permitidos para consumo externo.
+- **Compatibilidade semântica**: preservação de comportamento esperado mesmo com evolução interna.
+- **Desacoplamento**: redução de dependências diretas entre módulos para facilitar evolução independente.
+
+
 ## Propósito
 
 Concentrar headers estáveis consumidos pelos demais módulos do engine e pelas aplicações host.

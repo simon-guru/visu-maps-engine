@@ -2,6 +2,14 @@
 
 Contratos e tipos públicos do ciclo de vida da engine.
 
+## Glossário conceitual
+
+- **Estado da engine**: representação formal do estágio atual do runtime na máquina de lifecycle.
+- **Pré-condição**: requisito obrigatório de entrada para uma operação ser válida.
+- **Pós-condição**: garantia sobre o resultado e o estado após execução da operação.
+- **Thread-safety**: propriedade de acesso seguro sob concorrência entre threads.
+
+
 ## Escopo
 
 - estados da engine (uninitialized, initialized, running, paused, stopping, stopped);

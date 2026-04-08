@@ -2,6 +2,18 @@
 
 Camada base do `visu-maps-engine`, responsável por contratos comuns, tipos fundamentais e coordenação do lifecycle que será consumido por `render`, `gfx`, `tiles`, `services`, `sensors` e `platform_abstraction`.
 
+## Glossário conceitual (termos deste módulo)
+
+- **Observabilidade**: capacidade de inferir o estado interno do runtime a partir de sinais externos (logs, traces e eventos), sem acoplar o core a ferramentas específicas.
+- **Telemetria**: dados técnicos emitidos pela engine para monitoramento/diagnóstico operacional.
+- **Log estruturado**: registro com campos bem definidos (chave-valor), adequado para indexação e busca automatizada.
+- **Trace**: sequência temporal de eventos de execução (ex.: por frame) usada para entender latência e comportamento ao longo do tempo.
+- **Lifecycle**: ciclo de vida do runtime, incluindo inicialização, execução por frames, pausa, retomada e encerramento.
+- **Sink/Exporter**: destino de exportação de sinais de observabilidade; no core, é um contrato de interface sem dependência de backend.
+- **No-op**: operação intencionalmente vazia, usada como fallback seguro quando observabilidade está desabilitada.
+- **Backend-agnóstico**: desenho que evita dependência direta de tecnologia específica (vendor, protocolo ou biblioteca externa).
+
+
 ## Guia de uso do lifecycle (host apps)
 
 Para um walkthrough objetivo com fluxo nominal, cenários de erro e recomendações de tratamento no app host, consulte:
@@ -19,6 +31,8 @@ Entregar uma base mínima, estável e backend-agnóstica para permitir evoluçã
 - modelos fundamentais: `EngineConfig`, `EngineState`, `EngineError`, `FrameContext`;
 - contrato de lifecycle: `IEngineLifecycle`;
 - contrato de logging estruturado: `IEngineLogger` + `EngineLogPayload`;
+- contrato de exportação de observabilidade: `IObservabilitySink`;
+- envelope canônico de exportação: `EngineObservabilityEnvelope` + `EngineObservabilitySignal`;
 - implementação padrão de lifecycle: `EngineLifecycleController`;
 - include de compatibilidade: `engine/core/i_engine_lifecycle.hpp`;
 - target CMake: `engine_core`.
