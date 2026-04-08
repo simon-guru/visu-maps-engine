@@ -16,6 +16,7 @@
 #include "engine/core/contracts/i_engine_lifecycle.hpp"
 #include "engine/core/contracts/i_engine_logger.hpp"
 #include "engine/core/contracts/i_engine_tracer.hpp"
+#include "engine/core/types/engine_lifecycle_events.hpp"
 
 namespace vme::engine::core::lifecycle {
 
@@ -66,12 +67,9 @@ private:
         const char* message,
         types::EngineErrorSeverity severity = types::EngineErrorSeverity::Recoverable) const;
 
-    // Emite evento de lifecycle no logger configurado; no-op se logger_ == nullptr.
-    void log_lifecycle_event(
-        const char* operation,
-        types::EngineState state_before,
-        types::EngineState state_after,
-        const types::EngineError& result) const;
+    // Emite evento estruturado de lifecycle no pipeline de observabilidade.
+    // No-op quando logger_ == nullptr.
+    void emit_lifecycle_event(const types::EngineLifecycleEvent& event) const;
 
 
     // Emite trace de frame quando habilitado por configuração e tracer disponível.

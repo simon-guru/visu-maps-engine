@@ -12,6 +12,8 @@ Nesta fase, este diretório contém os modelos-base do core:
 - `EngineConfig`: configuração mínima de bootstrap (`app_name`, `target_fps`, validações);
 - `FrameContext`: metadados por frame (`frame_index`, `delta_time`, `timestamp`);
 - `to_string(...)`: helpers para serializar enums em logs e diagnósticos;
+- `EngineLifecycleOperation`/`EngineLifecycleEventPhase`: enum de operação/fase para observabilidade de lifecycle;
+- `EngineLifecycleEvent`: payload canônico (`operation`, `phase`, `state_before`, `state_after`, `error_code`, `error_message`);
 - `lifecycle_error::*`: catálogo de códigos/mensagens estáveis do lifecycle.
 
 ## Declarações públicas
@@ -19,6 +21,7 @@ Nesta fase, este diretório contém os modelos-base do core:
 As declarações estão em:
 
 - `engine/core/types/engine_models.hpp`
+- `engine/core/types/engine_lifecycle_events.hpp`
 - `engine/core/types/engine_error_codes.hpp`
 
 ## Catálogo de erros do lifecycle (estável para host)
