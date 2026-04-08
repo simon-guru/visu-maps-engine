@@ -387,7 +387,7 @@ void EngineLifecycleController::export_observability_signal(
         .signal = std::move(signal),
     };
 
-    for (const auto* sink : observability_sinks_) {
+    for (auto* sink : observability_sinks_) {
         if (sink == nullptr) {
             continue;
         }
