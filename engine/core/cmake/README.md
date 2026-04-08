@@ -11,3 +11,10 @@ Arquivos CMake específicos do módulo `engine/core`.
 ## Observação
 
 A intenção é manter o CMake modular para facilitar reutilização por apps e CI.
+
+
+## Progresso atual
+
+- target `engine_core` definido em `engine/core/CMakeLists.txt`;
+- includes públicos configurados para `engine/core/include`;
+- fontes iniciais: `types_engine_models.cpp` e `lifecycle/engine_lifecycle_controller.cpp`.
