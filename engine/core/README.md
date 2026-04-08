@@ -98,6 +98,24 @@ Esta matriz documenta o comportamento **implementado hoje** em `EngineLifecycleC
 | `Stopping` | **erro `1001`** | **erro `1003`** | **erro `1006`** | **erro `1007`** | **OK → `Stopping`** (idempotente; sem mudança de estado) |
 | `Stopped` | **erro `1001`** | **erro `1003`** | **erro `1006`** | **erro `1007`** | **OK → `Stopped`** (idempotente) |
 
+### Mapeamento evento ↔ transição (attempt/success/failure)
+
+Cada operação agora emite **sempre**:
+
+1. `"<operação>.attempt"` no início da chamada (sem alterar estado/erro);
+2. `"<operação>.success"` em finalização com sucesso;
+3. `"<operação>.failure"` em finalização com erro (incluindo transição inválida).
+
+| Método | Evento `attempt` | Evento `success` | Evento `failure` |
+|---|---|---|---|
+| `initialize` | `initialize.attempt` | `initialize.success` quando `Uninitialized -> Initialized` | `initialize.failure` para erro `1001` ou `1002` |
+| `tick` | `tick.attempt` | `tick.success` quando frame é aceito (`Initialized -> Running` ou `Running -> Running`) | `tick.failure` para erro `1003` ou `1004` |
+| `pause` | `pause.attempt` | `pause.success` quando `Running -> Paused` | `pause.failure` para erro `1006` |
+| `resume` | `resume.attempt` | `resume.success` quando `Paused -> Running` | `resume.failure` para erro `1007` |
+| `shutdown` | `shutdown.attempt` | `shutdown.success` quando encerra (`Initialized/Running/Paused -> Stopped`) ou no-op idempotente (`Stopping/Stopped`) | `shutdown.failure` para erro `1005` (`Uninitialized`) |
+
+Todos os eventos carregam os campos `state_before`, `state_after`, `error_code` e `error_message`.
+
 ### Observações de semântica relevante
 
 - `tick` chamado em `Initialized` promove o estado para `Running` **apenas após** validação de `delta_time`; em erro `1004`, o estado permanece `Initialized`.
@@ -126,7 +144,8 @@ O `EngineLifecycleController` aceita injeção opcional de logger via construtor
 
 - sem logger configurado (`nullptr`): chamadas de log são **no-op**;
 - com logger configurado: `initialize`, `tick` e `shutdown` emitem evento estruturado;
-- campos mínimos garantidos em cada evento de lifecycle: `state_before`, `state_after`, `result_code`, `severity`.
+- com logger configurado: todas as operações (`initialize`, `tick`, `pause`, `resume`, `shutdown`) emitem eventos de fase (`attempt`, `success`, `failure`);
+- campos mínimos garantidos em cada evento de lifecycle: `state_before`, `state_after`, `error_code`, `error_message`.
 
 ### Contrato público
 
@@ -137,7 +156,7 @@ O `EngineLifecycleController` aceita injeção opcional de logger via construtor
 
 - `module` (ex.: `engine.core.lifecycle`);
 - `severity` (`EngineErrorSeverity`);
-- `event`/operação (`initialize`, `tick`, `shutdown`);
+- `event` em formato `<operação>.<fase>` (ex.: `initialize.attempt`, `tick.success`, `pause.failure`);
 - `message`;
 - `fields` chave-valor com diagnósticos.
 

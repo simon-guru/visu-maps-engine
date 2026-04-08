@@ -20,6 +20,9 @@ namespace vme::engine::core::lifecycle {
 using types::EngineConfig;
 using types::EngineError;
 using types::EngineErrorSeverity;
+using types::EngineLifecycleEvent;
+using types::EngineLifecycleEventPhase;
+using types::EngineLifecycleOperation;
 using types::EngineState;
 using types::FrameContext;
 
@@ -47,13 +50,26 @@ EngineError EngineLifecycleController::initialize(const EngineConfig& config) {
     std::scoped_lock lock {mutex_};
 
     const EngineState state_before = state_;
+    emit_lifecycle_event(EngineLifecycleEvent {
+        .operation = EngineLifecycleOperation::Initialize,
+        .phase = EngineLifecycleEventPhase::Attempt,
+        .state_before = state_before,
+        .state_after = state_before,
+    });
 
     // Rejeita bootstrap fora do estado inicial para evitar reinit inconsistente.
     if (state_ != EngineState::Uninitialized) {
         const auto error = invalid_transition_error(
             types::lifecycle_error::LifecycleInitializeInvalidState,
             types::lifecycle_error::LifecycleInitializeInvalidStateMessage);
-        log_lifecycle_event("initialize", state_before, state_, error);
+        emit_lifecycle_event(EngineLifecycleEvent {
+            .operation = EngineLifecycleOperation::Initialize,
+            .phase = EngineLifecycleEventPhase::Failure,
+            .state_before = state_before,
+            .state_after = state_,
+            .error_code = error.code,
+            .error_message = error.message,
+        });
         return error;
     }
 
@@ -64,7 +80,14 @@ EngineError EngineLifecycleController::initialize(const EngineConfig& config) {
             .severity = EngineErrorSeverity::Recoverable,
             .message = types::lifecycle_error::LifecycleInvalidConfigMessage,
         };
-        log_lifecycle_event("initialize", state_before, state_, error);
+        emit_lifecycle_event(EngineLifecycleEvent {
+            .operation = EngineLifecycleOperation::Initialize,
+            .phase = EngineLifecycleEventPhase::Failure,
+            .state_before = state_before,
+            .state_after = state_,
+            .error_code = error.code,
+            .error_message = error.message,
+        });
         return error;
     }
 
@@ -75,7 +98,12 @@ EngineError EngineLifecycleController::initialize(const EngineConfig& config) {
 
     // Retorno de sucesso.
     const auto result = EngineError {};
-    log_lifecycle_event("initialize", state_before, state_, result);
+    emit_lifecycle_event(EngineLifecycleEvent {
+        .operation = EngineLifecycleOperation::Initialize,
+        .phase = EngineLifecycleEventPhase::Success,
+        .state_before = state_before,
+        .state_after = state_,
+    });
     return result;
 }
 
@@ -85,13 +113,26 @@ EngineError EngineLifecycleController::tick(const FrameContext& frame_context) {
     std::scoped_lock lock {mutex_};
 
     const EngineState state_before = state_;
+    emit_lifecycle_event(EngineLifecycleEvent {
+        .operation = EngineLifecycleOperation::Tick,
+        .phase = EngineLifecycleEventPhase::Attempt,
+        .state_before = state_before,
+        .state_after = state_before,
+    });
 
     // Tick é permitido somente após bootstrap e durante execução.
     if (state_ != EngineState::Initialized && state_ != EngineState::Running) {
         const auto error = invalid_transition_error(
             types::lifecycle_error::LifecycleTickInvalidState,
             types::lifecycle_error::LifecycleTickInvalidStateMessage);
-        log_lifecycle_event("tick", state_before, state_, error);
+        emit_lifecycle_event(EngineLifecycleEvent {
+            .operation = EngineLifecycleOperation::Tick,
+            .phase = EngineLifecycleEventPhase::Failure,
+            .state_before = state_before,
+            .state_after = state_,
+            .error_code = error.code,
+            .error_message = error.message,
+        });
         return error;
     }
 
@@ -102,7 +143,14 @@ EngineError EngineLifecycleController::tick(const FrameContext& frame_context) {
             .severity = EngineErrorSeverity::Recoverable,
             .message = types::lifecycle_error::LifecycleInvalidFrameContextMessage,
         };
-        log_lifecycle_event("tick", state_before, state_, error);
+        emit_lifecycle_event(EngineLifecycleEvent {
+            .operation = EngineLifecycleOperation::Tick,
+            .phase = EngineLifecycleEventPhase::Failure,
+            .state_before = state_before,
+            .state_after = state_,
+            .error_code = error.code,
+            .error_message = error.message,
+        });
         return error;
     }
 
@@ -116,7 +164,12 @@ EngineError EngineLifecycleController::tick(const FrameContext& frame_context) {
 
     // Sem trabalho adicional nesta fase: sucesso no tick.
     const auto result = EngineError {};
-    log_lifecycle_event("tick", state_before, state_, result);
+    emit_lifecycle_event(EngineLifecycleEvent {
+        .operation = EngineLifecycleOperation::Tick,
+        .phase = EngineLifecycleEventPhase::Success,
+        .state_before = state_before,
+        .state_after = state_,
+    });
     return result;
 }
 
@@ -125,15 +178,38 @@ EngineError EngineLifecycleController::pause() {
     // Lock protege transição de estado.
     std::scoped_lock lock {mutex_};
 
+    const EngineState state_before = state_;
+    emit_lifecycle_event(EngineLifecycleEvent {
+        .operation = EngineLifecycleOperation::Pause,
+        .phase = EngineLifecycleEventPhase::Attempt,
+        .state_before = state_before,
+        .state_after = state_before,
+    });
+
     // Pausa só é válida durante execução ativa.
     if (state_ != EngineState::Running) {
-        return invalid_transition_error(
+        const auto error = invalid_transition_error(
             types::lifecycle_error::LifecyclePauseInvalidState,
             types::lifecycle_error::LifecyclePauseInvalidStateMessage);
+        emit_lifecycle_event(EngineLifecycleEvent {
+            .operation = EngineLifecycleOperation::Pause,
+            .phase = EngineLifecycleEventPhase::Failure,
+            .state_before = state_before,
+            .state_after = state_,
+            .error_code = error.code,
+            .error_message = error.message,
+        });
+        return error;
     }
 
     // Aplica transição running -> paused.
     state_ = EngineState::Paused;
+    emit_lifecycle_event(EngineLifecycleEvent {
+        .operation = EngineLifecycleOperation::Pause,
+        .phase = EngineLifecycleEventPhase::Success,
+        .state_before = state_before,
+        .state_after = state_,
+    });
     return EngineError {};
 }
 
@@ -142,15 +218,38 @@ EngineError EngineLifecycleController::resume() {
     // Lock protege transição de estado.
     std::scoped_lock lock {mutex_};
 
+    const EngineState state_before = state_;
+    emit_lifecycle_event(EngineLifecycleEvent {
+        .operation = EngineLifecycleOperation::Resume,
+        .phase = EngineLifecycleEventPhase::Attempt,
+        .state_before = state_before,
+        .state_after = state_before,
+    });
+
     // Resume só é válido a partir de paused.
     if (state_ != EngineState::Paused) {
-        return invalid_transition_error(
+        const auto error = invalid_transition_error(
             types::lifecycle_error::LifecycleResumeInvalidState,
             types::lifecycle_error::LifecycleResumeInvalidStateMessage);
+        emit_lifecycle_event(EngineLifecycleEvent {
+            .operation = EngineLifecycleOperation::Resume,
+            .phase = EngineLifecycleEventPhase::Failure,
+            .state_before = state_before,
+            .state_after = state_,
+            .error_code = error.code,
+            .error_message = error.message,
+        });
+        return error;
     }
 
     // Aplica transição paused -> running.
     state_ = EngineState::Running;
+    emit_lifecycle_event(EngineLifecycleEvent {
+        .operation = EngineLifecycleOperation::Resume,
+        .phase = EngineLifecycleEventPhase::Success,
+        .state_before = state_before,
+        .state_after = state_,
+    });
     return EngineError {};
 }
 
@@ -160,6 +259,12 @@ EngineError EngineLifecycleController::shutdown() {
     std::scoped_lock lock {mutex_};
 
     const EngineState state_before = state_;
+    emit_lifecycle_event(EngineLifecycleEvent {
+        .operation = EngineLifecycleOperation::Shutdown,
+        .phase = EngineLifecycleEventPhase::Attempt,
+        .state_before = state_before,
+        .state_after = state_before,
+    });
 
     // Define rotas válidas de encerramento.
     switch (state_) {
@@ -173,7 +278,12 @@ EngineError EngineLifecycleController::shutdown() {
         case EngineState::Stopping:
         case EngineState::Stopped: {
             const auto result = EngineError {};
-            log_lifecycle_event("shutdown", state_before, state_, result);
+            emit_lifecycle_event(EngineLifecycleEvent {
+                .operation = EngineLifecycleOperation::Shutdown,
+                .phase = EngineLifecycleEventPhase::Success,
+                .state_before = state_before,
+                .state_after = state_,
+            });
             return result;
         }
         // Não há shutdown válido sem bootstrap prévio.
@@ -181,7 +291,14 @@ EngineError EngineLifecycleController::shutdown() {
             const auto error = invalid_transition_error(
                 types::lifecycle_error::LifecycleShutdownInvalidState,
                 types::lifecycle_error::LifecycleShutdownInvalidStateMessage);
-            log_lifecycle_event("shutdown", state_before, state_, error);
+            emit_lifecycle_event(EngineLifecycleEvent {
+                .operation = EngineLifecycleOperation::Shutdown,
+                .phase = EngineLifecycleEventPhase::Failure,
+                .state_before = state_before,
+                .state_after = state_,
+                .error_code = error.code,
+                .error_message = error.message,
+            });
             return error;
         }
     }
@@ -189,7 +306,12 @@ EngineError EngineLifecycleController::shutdown() {
     // Finaliza parada.
     state_ = EngineState::Stopped;
     const auto result = EngineError {};
-    log_lifecycle_event("shutdown", state_before, state_, result);
+    emit_lifecycle_event(EngineLifecycleEvent {
+        .operation = EngineLifecycleOperation::Shutdown,
+        .phase = EngineLifecycleEventPhase::Success,
+        .state_before = state_before,
+        .state_after = state_,
+    });
     return result;
 }
 
@@ -217,25 +339,38 @@ EngineError EngineLifecycleController::invalid_transition_error(
     };
 }
 
-void EngineLifecycleController::log_lifecycle_event(
-    const char* operation,
-    const EngineState state_before,
-    const EngineState state_after,
-    const EngineError& result) const {
+void EngineLifecycleController::emit_lifecycle_event(const EngineLifecycleEvent& event) const {
     if (logger_ == nullptr) {
         return;
     }
 
+    const auto event_operation = std::string {types::to_string(event.operation)};
+    const auto event_phase = std::string {types::to_string(event.phase)};
+    const auto event_name = event_operation + "." + event_phase;
+    const auto message = event.phase == EngineLifecycleEventPhase::Failure
+        ? event.error_message
+        : "Lifecycle operation event emitted.";
+
     auto payload = types::EngineLogPayload {
         .module = kLifecycleModule,
-        .severity = result.severity,
-        .event = operation,
-        .message = result.is_ok() ? "Lifecycle operation completed." : result.message,
+        .severity = event.phase == EngineLifecycleEventPhase::Failure
+            ? EngineErrorSeverity::Recoverable
+            : EngineErrorSeverity::Info,
+        .event = event_name,
+        .message = message,
         .fields = std::vector<types::EngineLogField> {
-            types::EngineLogField {"state_before", std::string {types::to_string(state_before)}},
-            types::EngineLogField {"state_after", std::string {types::to_string(state_after)}},
-            types::EngineLogField {"result_code", std::to_string(result.code)},
-            types::EngineLogField {"severity", std::string {types::to_string(result.severity)}},
+            types::EngineLogField {"operation", event_operation},
+            types::EngineLogField {"phase", event_phase},
+            types::EngineLogField {
+                "state_before",
+                std::string {types::to_string(event.state_before)},
+            },
+            types::EngineLogField {
+                "state_after",
+                std::string {types::to_string(event.state_after)},
+            },
+            types::EngineLogField {"error_code", std::to_string(event.error_code)},
+            types::EngineLogField {"error_message", event.error_message},
         },
     };
 
