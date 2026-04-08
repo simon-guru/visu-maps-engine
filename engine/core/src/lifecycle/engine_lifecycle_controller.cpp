@@ -49,13 +49,8 @@ EngineError EngineLifecycleController::tick(const FrameContext& frame_context) {
     // Lock para garantir leitura/escrita consistente de estado e contexto interno.
     std::scoped_lock lock {mutex_};
 
-    // Primeira chamada de tick após initialize promove o estado para running.
-    if (state_ == EngineState::Initialized) {
-        state_ = EngineState::Running;
-    }
-
-    // Tick é permitido somente em execução efetiva.
-    if (state_ != EngineState::Running) {
+    // Tick é permitido somente após bootstrap e durante execução.
+    if (state_ != EngineState::Initialized && state_ != EngineState::Running) {
         return invalid_transition_error(1003U, "tick requer estado Running ou Initialized.");
     }
 
@@ -66,6 +61,11 @@ EngineError EngineLifecycleController::tick(const FrameContext& frame_context) {
             .severity = EngineErrorSeverity::Recoverable,
             .message = "FrameContext inválido: delta_time negativo.",
         };
+    }
+
+    // Primeira chamada de tick válida após initialize promove o estado para running.
+    if (state_ == EngineState::Initialized) {
+        state_ = EngineState::Running;
     }
 
     // Sem trabalho adicional nesta fase: sucesso no tick.

@@ -35,7 +35,7 @@ public:
      * - estado de entrada permitido: `EngineState::kUninitialized`.
      *
      * Pós-condições de sucesso:
-     * - estado final: `EngineState::kRunning`;
+     * - estado final: `EngineState::kInitialized`;
      * - `config()` passa a refletir a configuração efetiva aplicada no bootstrap;
      * - invariantes: runtime pronto para receber `tick()`, `pause()` e `shutdown()`.
      *
@@ -49,25 +49,40 @@ public:
     virtual types::EngineError initialize(const types::EngineConfig& config) = 0;
 
     /**
+     * @brief Política de idempotência de `initialize`.
+     *
+     * - chamadas repetidas após inicialização bem-sucedida são inválidas;
+     * - comportamento obrigatório: erro determinístico de transição inválida.
+     */
+
+    /**
      * @brief Processa um frame/tick da engine.
      * @param frame_context Metadados temporais do frame atual.
      * @return EngineError com resultado da operação.
      *
      * Pré-condições:
-     * - estado de entrada permitido: `EngineState::kRunning`.
+     * - estados de entrada permitidos: `EngineState::kInitialized` e `EngineState::kRunning`.
      *
      * Pós-condições de sucesso:
      * - estado final: permanece em `EngineState::kRunning`;
      * - invariantes: configuração exposta por `config()` permanece estável.
      *
      * Pós-condições de erro:
-     * - estado deve ser preservado em `EngineState::kRunning`.
+     * - estado deve ser preservado no estado de entrada
+     *   (`EngineState::kInitialized` ou `EngineState::kRunning`).
      *
      * Garantias de thread-safety e reentrância:
      * - não thread-safe para chamadas concorrentes com outros métodos mutáveis;
      * - não reentrante.
      */
     virtual types::EngineError tick(const types::FrameContext& frame_context) = 0;
+
+    /**
+     * @brief Política de idempotência/validade de `tick`.
+     *
+     * - em estados não permitidos, retorno obrigatório de erro determinístico
+     *   de transição inválida.
+     */
 
     /**
      * @brief Move runtime para estado de pausa sem desalocar recursos críticos.
@@ -89,6 +104,13 @@ public:
     virtual types::EngineError pause() = 0;
 
     /**
+     * @brief Política de idempotência de `pause`.
+     *
+     * - chamadas repetidas (incluindo em `EngineState::kPaused`) são inválidas;
+     * - comportamento obrigatório: erro determinístico de transição inválida.
+     */
+
+    /**
      * @brief Retoma execução normal a partir de estado pausado.
      *
      * Pré-condições:
@@ -106,6 +128,13 @@ public:
      * - não reentrante.
      */
     virtual types::EngineError resume() = 0;
+
+    /**
+     * @brief Política de idempotência de `resume`.
+     *
+     * - chamadas repetidas (incluindo em `EngineState::kRunning`) são inválidas;
+     * - comportamento obrigatório: erro determinístico de transição inválida.
+     */
 
     /**
      * @brief Encerra runtime e libera recursos.
@@ -126,6 +155,13 @@ public:
      * - não reentrante.
      */
     virtual types::EngineError shutdown() = 0;
+
+    /**
+     * @brief Política de idempotência de `shutdown`.
+     *
+     * - chamadas repetidas em `EngineState::kStopping` ou `EngineState::kStopped`
+     *   devem ser tratadas como no-op idempotente com sucesso (`code == 0`).
+     */
 
     /**
      * @brief Fornece o estado atual da máquina de lifecycle.
