@@ -11,6 +11,32 @@ Este guia mostra como consumir o contrato `IEngineLifecycle` no app host com foc
 > - contrato: `engine/core/include/engine/core/contracts/i_engine_lifecycle.hpp`;
 > - implementação padrão: `engine/core/include/engine/core/lifecycle/engine_lifecycle_controller.hpp` e `engine/core/src/lifecycle/engine_lifecycle_controller.cpp`.
 
+## 0) Logging estruturado opcional
+
+O core expõe contrato público de logger estruturado em:
+
+- `engine/core/include/engine/core/contracts/i_engine_logger.hpp`;
+- `engine/core/include/engine/core/types/engine_logging.hpp`.
+
+Exemplo de logger host:
+
+```cpp
+#include <iostream>
+#include "engine/core/contracts/i_engine_logger.hpp"
+
+class StdoutEngineLogger final : public vme::engine::core::contracts::IEngineLogger {
+public:
+    void log(const vme::engine::core::types::EngineLogPayload& payload) override {
+        std::cout << "[" << payload.module << "] "
+                  << payload.event << " severity="
+                  << vme::engine::core::types::to_string(payload.severity)
+                  << " message=" << payload.message << "\n";
+    }
+};
+```
+
+`EngineLifecycleController` funciona normalmente sem logger (`nullptr`): o logging vira no-op sem alterar erros ou transições.
+
 ## 1) Exemplo nominal: `initialize -> tick -> pause -> resume -> shutdown`
 
 ```cpp
@@ -21,7 +47,10 @@ using vme::engine::core::types::EngineConfig;
 using vme::engine::core::types::FrameContext;
 
 int main() {
-    EngineLifecycleController engine {};
+    StdoutEngineLogger logger {};
+    EngineLifecycleController engine {&logger};
+
+    // Também é possível injetar depois: engine.set_logger(&logger);
 
     // 1) initialize
     EngineConfig config {};

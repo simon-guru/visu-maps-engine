@@ -12,8 +12,9 @@
 // mutex para garantir segurança em acesso concorrente ao estado interno.
 #include <mutex>
 
-// Interface pública que será implementada por este controller.
+// Interfaces públicas consumidas pelo controller.
 #include "engine/core/contracts/i_engine_lifecycle.hpp"
+#include "engine/core/contracts/i_engine_logger.hpp"
 
 namespace vme::engine::core::lifecycle {
 
@@ -23,14 +24,18 @@ namespace vme::engine::core::lifecycle {
  * Responsabilidades:
  * - proteger estado interno com sincronização simples;
  * - validar transições para evitar uso incorreto da API;
- * - devolver erros consistentes para integração previsível.
+ * - devolver erros consistentes para integração previsível;
+ * - emitir logs estruturados quando um logger opcional estiver configurado.
  */
 class EngineLifecycleController final : public contracts::IEngineLifecycle {
 public:
-    // Construtor padrão suficiente: estado inicial é definido por membros.
-    EngineLifecycleController() = default;
+    // Construtor opcionalmente recebe logger não-proprietário.
+    explicit EngineLifecycleController(contracts::IEngineLogger* logger = nullptr) noexcept;
     // Destrutor virtual herdado da interface; aqui permanece padrão.
     ~EngineLifecycleController() override = default;
+
+    // Atualiza logger opcional em runtime. Ponteiro nulo desabilita emissão.
+    void set_logger(contracts::IEngineLogger* logger) noexcept;
 
     // Bootstrap inicial do runtime.
     types::EngineError initialize(const types::EngineConfig& config) override;
@@ -55,8 +60,17 @@ private:
         const char* message,
         types::EngineErrorSeverity severity = types::EngineErrorSeverity::Recoverable) const;
 
-    // Mutex que protege leitura/escrita de `state_` e `config_`.
+    // Emite evento de lifecycle no logger configurado; no-op se logger_ == nullptr.
+    void log_lifecycle_event(
+        const char* operation,
+        types::EngineState state_before,
+        types::EngineState state_after,
+        const types::EngineError& result) const;
+
+    // Mutex que protege leitura/escrita de `state_`, `config_` e `logger_`.
     mutable std::mutex mutex_ {};
+    // Dependência opcional de logging (não proprietária).
+    contracts::IEngineLogger* logger_ {nullptr};
     // Configuração efetiva após initialize.
     types::EngineConfig config_ {};
     // Estado da máquina de lifecycle.

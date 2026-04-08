@@ -18,6 +18,7 @@ Entregar uma base mínima, estável e backend-agnóstica para permitir evoluçã
 
 - modelos fundamentais: `EngineConfig`, `EngineState`, `EngineError`, `FrameContext`;
 - contrato de lifecycle: `IEngineLifecycle`;
+- contrato de logging estruturado: `IEngineLogger` + `EngineLogPayload`;
 - implementação padrão de lifecycle: `EngineLifecycleController`;
 - include de compatibilidade: `engine/core/i_engine_lifecycle.hpp`;
 - target CMake: `engine_core`.
@@ -34,13 +35,15 @@ engine/core/
 │       ├── i_engine_lifecycle.hpp
 │       ├── types/
 │       │   ├── README.md
-│       │   └── engine_models.hpp
+│       │   ├── engine_models.hpp
+│       │   └── engine_logging.hpp
 │       ├── lifecycle/
 │       │   ├── README.md
 │       │   └── engine_lifecycle_controller.hpp
 │       ├── contracts/
 │       │   ├── README.md
-│       │   └── i_engine_lifecycle.hpp
+│       │   ├── i_engine_lifecycle.hpp
+│       │   └── i_engine_logger.hpp
 │       └── utils/README.md
 ├── src/
 │   ├── README.md
@@ -116,6 +119,27 @@ Esta seção define a política canônica de idempotência e erro determinístic
 - A implementação não deve variar o erro por contagem de tentativa, timestamp ou contexto externo.
 
 ---
+
+## Logging estruturado no lifecycle (contrato atual)
+
+O `EngineLifecycleController` aceita injeção opcional de logger via construtor ou `set_logger(...)` com ponteiro não-proprietário para `IEngineLogger`.
+
+- sem logger configurado (`nullptr`): chamadas de log são **no-op**;
+- com logger configurado: `initialize`, `tick` e `shutdown` emitem evento estruturado;
+- campos mínimos garantidos em cada evento de lifecycle: `state_before`, `state_after`, `result_code`, `severity`.
+
+### Contrato público
+
+- interface: `engine/core/include/engine/core/contracts/i_engine_logger.hpp`;
+- payload: `engine/core/include/engine/core/types/engine_logging.hpp`.
+
+### Payload mínimo de evento
+
+- `module` (ex.: `engine.core.lifecycle`);
+- `severity` (`EngineErrorSeverity`);
+- `event`/operação (`initialize`, `tick`, `shutdown`);
+- `message`;
+- `fields` chave-valor com diagnósticos.
 
 ## Próximas fases / etapas
 
