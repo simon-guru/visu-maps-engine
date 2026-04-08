@@ -30,6 +30,21 @@ public:
      * @brief Inicializa runtime com configuração validável.
      * @param config Configuração de bootstrap.
      * @return EngineError com `code == 0` em caso de sucesso.
+     *
+     * Pré-condições:
+     * - estado de entrada permitido: `EngineState::kUninitialized`.
+     *
+     * Pós-condições de sucesso:
+     * - estado final: `EngineState::kRunning`;
+     * - `config()` passa a refletir a configuração efetiva aplicada no bootstrap;
+     * - invariantes: runtime pronto para receber `tick()`, `pause()` e `shutdown()`.
+     *
+     * Pós-condições de erro:
+     * - estado deve ser preservado em `EngineState::kUninitialized`.
+     *
+     * Garantias de thread-safety e reentrância:
+     * - não thread-safe para chamadas concorrentes com outros métodos mutáveis;
+     * - não reentrante.
      */
     virtual types::EngineError initialize(const types::EngineConfig& config) = 0;
 
@@ -37,27 +52,97 @@ public:
      * @brief Processa um frame/tick da engine.
      * @param frame_context Metadados temporais do frame atual.
      * @return EngineError com resultado da operação.
+     *
+     * Pré-condições:
+     * - estado de entrada permitido: `EngineState::kRunning`.
+     *
+     * Pós-condições de sucesso:
+     * - estado final: permanece em `EngineState::kRunning`;
+     * - invariantes: configuração exposta por `config()` permanece estável.
+     *
+     * Pós-condições de erro:
+     * - estado deve ser preservado em `EngineState::kRunning`.
+     *
+     * Garantias de thread-safety e reentrância:
+     * - não thread-safe para chamadas concorrentes com outros métodos mutáveis;
+     * - não reentrante.
      */
     virtual types::EngineError tick(const types::FrameContext& frame_context) = 0;
 
     /**
      * @brief Move runtime para estado de pausa sem desalocar recursos críticos.
+     *
+     * Pré-condições:
+     * - estado de entrada permitido: `EngineState::kRunning`.
+     *
+     * Pós-condições de sucesso:
+     * - estado final: `EngineState::kPaused`;
+     * - invariantes: recursos críticos permanecem alocados para permitir `resume()`.
+     *
+     * Pós-condições de erro:
+     * - estado deve ser preservado em `EngineState::kRunning`.
+     *
+     * Garantias de thread-safety e reentrância:
+     * - não thread-safe para chamadas concorrentes com outros métodos mutáveis;
+     * - não reentrante.
      */
     virtual types::EngineError pause() = 0;
 
     /**
      * @brief Retoma execução normal a partir de estado pausado.
+     *
+     * Pré-condições:
+     * - estado de entrada permitido: `EngineState::kPaused`.
+     *
+     * Pós-condições de sucesso:
+     * - estado final: `EngineState::kRunning`;
+     * - invariantes: configuração exposta por `config()` não é alterada.
+     *
+     * Pós-condições de erro:
+     * - estado deve ser preservado em `EngineState::kPaused`.
+     *
+     * Garantias de thread-safety e reentrância:
+     * - não thread-safe para chamadas concorrentes com outros métodos mutáveis;
+     * - não reentrante.
      */
     virtual types::EngineError resume() = 0;
 
     /**
-     * @brief Solicita encerramento ordenado do runtime.
      * @brief Encerra runtime e libera recursos.
+     *
+     * Pré-condições:
+     * - estados de entrada permitidos: `EngineState::kRunning` e `EngineState::kPaused`.
+     *
+     * Pós-condições de sucesso:
+     * - estado final: `EngineState::kStopped`;
+     * - invariantes: chamadas subsequentes de `tick()`, `pause()` e `resume()` deixam de ser válidas.
+     *
+     * Pós-condições de erro:
+     * - estado pode não ser preservado; implementação deve registrar via `EngineError`
+     *   se houve encerramento parcial ou transição intermediária.
+     *
+     * Garantias de thread-safety e reentrância:
+     * - não thread-safe para chamadas concorrentes com outros métodos mutáveis;
+     * - não reentrante.
      */
     virtual types::EngineError shutdown() = 0;
 
     /**
      * @brief Fornece o estado atual da máquina de lifecycle.
+     *
+     * Pré-condições:
+     * - pode ser chamado em qualquer estado.
+     *
+     * Pós-condições de sucesso:
+     * - estado final: inalterado;
+     * - invariantes: leitura observacional sem efeitos colaterais.
+     *
+     * Pós-condições de erro:
+     * - não aplicável: método `noexcept` sem canal explícito de erro.
+     *
+     * Garantias de thread-safety e reentrância:
+     * - thread-safe para leitura concorrente;
+     * - reentrante.
      */
     [[nodiscard]] virtual types::EngineState state() const noexcept = 0;
 
@@ -66,6 +151,20 @@ public:
      *
      * Motivo: permitir inspeção operacional e diagnóstica sem duplicar estado
      * fora do controller.
+     *
+     * Pré-condições:
+     * - pode ser chamado em qualquer estado após uma inicialização bem-sucedida.
+     *
+     * Pós-condições de sucesso:
+     * - estado final: inalterado;
+     * - invariantes: retorna referência para configuração efetiva vigente.
+     *
+     * Pós-condições de erro:
+     * - não aplicável: método `noexcept` sem canal explícito de erro.
+     *
+     * Garantias de thread-safety e reentrância:
+     * - thread-safe para leitura concorrente;
+     * - reentrante.
      */
     [[nodiscard]] virtual const types::EngineConfig& config() const noexcept = 0;
 };
