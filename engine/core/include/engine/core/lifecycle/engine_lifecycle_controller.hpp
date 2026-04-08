@@ -1,3 +1,10 @@
+/*
+# Copyright (c) 2026. VISU LLC. All rights reserved.
+# Author: Simão A.Mayunga
+# Date: 02/04/2026
+# This file is part of VISU LLC.
+*/
+
 #pragma once
 
 #include <cstdint>
@@ -5,7 +12,7 @@
 
 #include "engine/core/contracts/i_engine_lifecycle.hpp"
 
-namespace visu::engine::core::lifecycle {
+namespace vme::engine::core::lifecycle {
 
 /**
  * @brief Implementação padrão do contrato IEngineLifecycle.
@@ -35,4 +42,4 @@ private:
     types::EngineState state_ {types::EngineState::Uninitialized};
 };
 
-}  // namespace visu::engine::core::lifecycle
+}  // namespace vme::engine::core::lifecycle

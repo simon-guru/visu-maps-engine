@@ -1,8 +1,15 @@
+/*
+# Copyright (c) 2026. VISU LLC. All rights reserved.
+# Author: Simão A.Mayunga
+# Date: 02/04/2026
+# This file is part of VISU LLC.
+*/
+
 #pragma once
 
 #include "engine/core/types/engine_models.hpp"
 
-namespace visu::engine::core::contracts {
+namespace vme::engine::core::contracts {
 
 /**
  * @brief Contrato mínimo para lifecycle do runtime da engine.
@@ -34,4 +41,4 @@ public:
     [[nodiscard]] virtual types::EngineState state() const noexcept = 0;
 };
 
-}  // namespace visu::engine::core::contracts
+}  // namespace vme::engine::core::contracts

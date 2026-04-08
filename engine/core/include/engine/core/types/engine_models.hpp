@@ -1,3 +1,10 @@
+/*
+# Copyright (c) 2026. VISU LLC. All rights reserved.
+# Author: Simão A.Mayunga
+# Date: 02/04/2026
+# This file is part of VISU LLC.
+*/
+
 #pragma once
 
 #include <chrono>
@@ -5,7 +12,7 @@
 #include <string>
 #include <string_view>
 
-namespace visu::engine::core::types {
+namespace vme::engine::core::types {
 
 /**
  * @brief Representa os estados globais possíveis da engine.
@@ -78,4 +85,4 @@ struct FrameContext final {
  */
 [[nodiscard]] std::string_view to_string(EngineErrorSeverity severity) noexcept;
 
-}  // namespace visu::engine::core::types
+}  // namespace vme::engine::core::types
