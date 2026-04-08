@@ -2,6 +2,12 @@
 
 Camada base do `visu-maps-engine`, responsável por contratos comuns, tipos fundamentais e coordenação do lifecycle que será consumido por `render`, `gfx`, `tiles`, `services`, `sensors` e `platform_abstraction`.
 
+## Guia de uso do lifecycle (host apps)
+
+Para um walkthrough objetivo com fluxo nominal, cenários de erro e recomendações de tratamento no app host, consulte:
+
+- `docs/api/engine_lifecycle_usage.md`
+
 ## Fase atual (Fase 0 — Fundação do Core)
 
 ### Objetivo
