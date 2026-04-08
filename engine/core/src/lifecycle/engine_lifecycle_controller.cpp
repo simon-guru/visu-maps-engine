@@ -8,8 +8,10 @@
 // Implementação padrão da máquina de lifecycle do core.
 #include "engine/core/lifecycle/engine_lifecycle_controller.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "engine/core/types/engine_error_codes.hpp"
@@ -42,6 +44,41 @@ void EngineLifecycleController::set_logger(contracts::IEngineLogger* logger) noe
 void EngineLifecycleController::set_tracer(contracts::IEngineTracer* tracer) noexcept {
     std::scoped_lock lock {mutex_};
     tracer_ = tracer;
+}
+
+
+void EngineLifecycleController::add_observability_sink(contracts::IObservabilitySink* sink) noexcept {
+    if (sink == nullptr || sink == &noop_sink_) {
+        return;
+    }
+
+    std::scoped_lock lock {mutex_};
+    if (std::find(observability_sinks_.begin(), observability_sinks_.end(), sink)
+        != observability_sinks_.end()) {
+        return;
+    }
+
+    if (observability_sinks_.size() == 1U && observability_sinks_.front() == &noop_sink_) {
+        observability_sinks_.clear();
+    }
+
+    observability_sinks_.push_back(sink);
+}
+
+void EngineLifecycleController::remove_observability_sink(contracts::IObservabilitySink* sink) noexcept {
+    std::scoped_lock lock {mutex_};
+    const auto new_end = std::remove(observability_sinks_.begin(), observability_sinks_.end(), sink);
+    observability_sinks_.erase(new_end, observability_sinks_.end());
+
+    if (observability_sinks_.empty()) {
+        observability_sinks_.push_back(&noop_sink_);
+    }
+}
+
+void EngineLifecycleController::clear_observability_sinks() noexcept {
+    std::scoped_lock lock {mutex_};
+    observability_sinks_.clear();
+    observability_sinks_.push_back(&noop_sink_);
 }
 
 // Realiza bootstrap inicial.
@@ -339,7 +376,29 @@ EngineError EngineLifecycleController::invalid_transition_error(
     };
 }
 
+void EngineLifecycleController::export_observability_signal(
+    types::EngineObservabilitySignal signal) const {
+    const auto emitted_at_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+        FrameContext::Clock::now().time_since_epoch());
+
+    const auto envelope = types::EngineObservabilityEnvelope {
+        .emitted_at_ns = emitted_at_ns.count(),
+        .source = kLifecycleModule,
+        .signal = std::move(signal),
+    };
+
+    for (const auto* sink : observability_sinks_) {
+        if (sink == nullptr) {
+            continue;
+        }
+
+        sink->export_signal(envelope);
+    }
+}
+
 void EngineLifecycleController::emit_lifecycle_event(const EngineLifecycleEvent& event) const {
+    export_observability_signal(event);
+
     if (logger_ == nullptr) {
         return;
     }
@@ -380,7 +439,7 @@ void EngineLifecycleController::emit_lifecycle_event(const EngineLifecycleEvent&
 
 void EngineLifecycleController::trace_frame_event(const FrameContext& frame_context) const {
     // Caminho desabilitado: retorna antes de qualquer custo de normalização/alocação.
-    if (!config_.enable_frame_trace || tracer_ == nullptr) {
+    if (!config_.enable_frame_trace) {
         return;
     }
 
@@ -390,11 +449,17 @@ void EngineLifecycleController::trace_frame_event(const FrameContext& frame_cont
     const auto timestamp_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
         frame_context.timestamp.time_since_epoch());
 
-    tracer_->trace_frame(types::FrameTraceEvent {
+    const auto event = types::FrameTraceEvent {
         .frame_index = frame_context.frame_index,
         .delta_time = delta_time_ns.count(),
         .timestamp = timestamp_ns.count(),
-    });
+    };
+
+    export_observability_signal(event);
+
+    if (tracer_ != nullptr) {
+        tracer_->trace_frame(event);
+    }
 }
 
 }  // namespace vme::engine::core::lifecycle

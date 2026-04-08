@@ -2,6 +2,14 @@
 
 Interfaces comuns compartilhadas pelos módulos do engine.
 
+## Glossário conceitual
+
+- **Contrato (interface)**: fronteira estável entre produtor e consumidor de capacidade, com semântica explícita e baixo acoplamento.
+- **Sink de observabilidade**: consumidor de sinais de telemetria que recebe payloads canônicos sem impor backend ao core.
+- **Capacidade**: conjunto mínimo de operações que um módulo expõe (ex.: lifecycle, logging, tracing, exportação de observabilidade).
+- **Idempotência**: propriedade de chamadas repetidas não ampliarem efeitos além da primeira aplicação válida.
+
+
 ## Escopo
 
 Este diretório concentra contratos transversais, por exemplo:
@@ -23,6 +31,8 @@ Este diretório concentra contratos transversais, por exemplo:
     - `config() const`.
 - `engine/core/i_engine_lifecycle.hpp`
   - facade de compatibilidade de include path para consumidores externos.
+- `engine/core/contracts/i_observability_sink.hpp`
+  - interface `IObservabilitySink` para exportação canônica de sinais (`log`, `trace`, `lifecycle`) sem backend específico.
 
 ## Regras normativas do contrato `IEngineLifecycle`
 
