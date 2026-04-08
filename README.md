@@ -11,6 +11,12 @@ Em **02/04/2026**, o módulo `engine/core` passou a incluir implementação inic
 
 A documentação técnica dessas declarações e implementações está nos READMEs internos de `engine/core/include/*` e `engine/core/src/*`.
 
+### Guia rápido de lifecycle do engine core
+
+Para integração do app host com exemplos de fluxo nominal, tratamento de erro (`EngineError`) e mapeamento de transições/códigos, consulte:
+
+- `docs/api/engine_lifecycle_usage.md`
+
 
 ## Funcionalidades
 
