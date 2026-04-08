@@ -48,34 +48,31 @@ EngineError EngineLifecycleController::initialize(const EngineConfig &config) {
 }
 
 // Processa um frame.
-EngineError EngineLifecycleController::tick(const FrameContext &frame_context) {
-  // Lock para garantir leitura/escrita consistente de estado e contexto
-  // interno.
-  std::scoped_lock lock{mutex_};
+EngineError EngineLifecycleController::tick(const FrameContext& frame_context) {
+    // Lock para garantir leitura/escrita consistente de estado e contexto interno.
+    std::scoped_lock lock {mutex_};
 
-  // Primeira chamada de tick após initialize promove o estado para running.
-  if (state_ == EngineState::Initialized) {
-    state_ = EngineState::Running;
-  }
+    // Tick é permitido somente após bootstrap e durante execução.
+    if (state_ != EngineState::Initialized && state_ != EngineState::Running) {
+        return invalid_transition_error(1003U, "tick requer estado Running ou Initialized.");
+    }
 
-  // Tick é permitido somente em execução efetiva.
-  if (state_ != EngineState::Running) {
-    return invalid_transition_error(
-        types::lifecycle_error::LifecycleTickInvalidState,
-        types::lifecycle_error::LifecycleTickInvalidStateMessage);
-  }
+    // Delta negativo viola invariantes temporais do frame loop.
+    if (frame_context.delta_time < FrameContext::Clock::duration::zero()) {
+        return EngineError {
+            .code = 1004U,
+            .severity = EngineErrorSeverity::Recoverable,
+            .message = "FrameContext inválido: delta_time negativo.",
+        };
+    }
 
-  // Delta negativo viola invariantes temporais do frame loop.
-  if (frame_context.delta_time < FrameContext::Clock::duration::zero()) {
-    return EngineError{
-        .code = types::lifecycle_error::LifecycleInvalidFrameContext,
-        .severity = EngineErrorSeverity::Recoverable,
-        .message = types::lifecycle_error::LifecycleInvalidFrameContextMessage,
-    };
-  }
+    // Primeira chamada de tick válida após initialize promove o estado para running.
+    if (state_ == EngineState::Initialized) {
+        state_ = EngineState::Running;
+    }
 
-  // Sem trabalho adicional nesta fase: sucesso no tick.
-  return EngineError{};
+    // Sem trabalho adicional nesta fase: sucesso no tick.
+    return EngineError {};
 }
 
 // Pausa execução sem desligar runtime.

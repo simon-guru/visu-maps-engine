@@ -83,7 +83,7 @@ Esta matriz documenta o comportamento **implementado hoje** em `EngineLifecycleC
 | Estado atual \ Método | `initialize` | `tick` | `pause` | `resume` | `shutdown` |
 |---|---|---|---|---|---|
 | `Uninitialized` | **OK → `Initialized`** (se config válida) \| **erro `1002`** (config inválida, permanece `Uninitialized`) | **erro `1003`** | **erro `1006`** | **erro `1007`** | **erro `1005`** |
-| `Initialized` | **erro `1001`** | **OK → `Running`** (se frame válido) \| **erro `1004`** (`delta_time` negativo; estado já promovido para `Running`) | **erro `1006`** | **erro `1007`** | **OK → `Stopped`** (passando internamente por `Stopping`) |
+| `Initialized` | **erro `1001`** | **OK → `Running`** (se frame válido) \| **erro `1004`** (`delta_time` negativo; permanece `Initialized`) | **erro `1006`** | **erro `1007`** | **OK → `Stopped`** (passando internamente por `Stopping`) |
 | `Running` | **erro `1001`** | **OK → `Running`** \| **erro `1004`** (`delta_time` negativo, permanece `Running`) | **OK → `Paused`** | **erro `1007`** | **OK → `Stopped`** (passando internamente por `Stopping`) |
 | `Paused` | **erro `1001`** | **erro `1003`** | **erro `1006`** | **OK → `Running`** | **OK → `Stopped`** (passando internamente por `Stopping`) |
 | `Stopping` | **erro `1001`** | **erro `1003`** | **erro `1006`** | **erro `1007`** | **OK → `Stopping`** (idempotente; sem mudança de estado) |
@@ -91,8 +91,23 @@ Esta matriz documenta o comportamento **implementado hoje** em `EngineLifecycleC
 
 ### Observações de semântica relevante
 
-- `tick` chamado em `Initialized` promove o estado para `Running` **antes** da validação de `delta_time`; portanto, se ocorrer erro `1004`, o estado já está em `Running`.
+- `tick` chamado em `Initialized` promove o estado para `Running` **apenas após** validação de `delta_time`; em erro `1004`, o estado permanece `Initialized`.
 - Em estados `Stopping` e `Stopped`, `shutdown` retorna sucesso idempotente, sem forçar nova transição.
+
+## Idempotência (política oficial)
+
+Esta seção define a política canônica de idempotência e erro determinístico para `IEngineLifecycle` e para a implementação padrão `EngineLifecycleController`.
+
+- `initialize` repetido: **erro determinístico** (`code = 1001`, mensagem fixa de transição inválida).
+- `tick` em estados não permitidos (`Uninitialized`, `Paused`, `Stopping`, `Stopped`): **erro determinístico** (`code = 1003`, mensagem fixa de transição inválida).
+- `pause` repetido (inclui chamada em `Paused`): **erro determinístico** (`code = 1006`, mensagem fixa de transição inválida).
+- `resume` repetido (inclui chamada em `Running`): **erro determinístico** (`code = 1007`, mensagem fixa de transição inválida).
+- `shutdown` repetido (`Stopping`/`Stopped`): **no-op idempotente com sucesso** (`code = 0`, sem alteração de estado).
+
+### Regra de determinismo
+
+- Para cada violação de pré-condição de lifecycle, o par **código + mensagem** deve ser estável e reproduzível.
+- A implementação não deve variar o erro por contagem de tentativa, timestamp ou contexto externo.
 
 ---
 
