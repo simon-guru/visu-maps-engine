@@ -52,6 +52,7 @@ public:
 
     /**
      * @brief Solicita encerramento ordenado do runtime.
+     * @brief Encerra runtime e libera recursos.
      */
     virtual types::EngineError shutdown() = 0;
 
