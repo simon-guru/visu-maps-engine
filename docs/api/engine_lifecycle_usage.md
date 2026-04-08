@@ -16,7 +16,9 @@ Este guia mostra como consumir o contrato `IEngineLifecycle` no app host com foc
 O core expõe contrato público de logger estruturado em:
 
 - `engine/core/include/engine/core/contracts/i_engine_logger.hpp`;
-- `engine/core/include/engine/core/types/engine_logging.hpp`.
+- `engine/core/include/engine/core/types/engine_logging.hpp`;
+- `engine/core/include/engine/core/contracts/i_engine_tracer.hpp`;
+- `engine/core/include/engine/core/types/engine_trace_events.hpp`.
 
 Exemplo de logger host:
 
@@ -36,6 +38,38 @@ public:
 ```
 
 `EngineLifecycleController` funciona normalmente sem logger (`nullptr`): o logging vira no-op sem alterar erros ou transições.
+
+
+## 0.1) Tracing de frame (opcional e desacoplado de logger)
+
+O tracing de frame usa contrato dedicado (`IEngineTracer`) para evitar acoplamento com `IEngineLogger`.
+
+### Como habilitar
+
+1. Defina `config.enable_frame_trace = true` no `initialize`.
+2. Injete uma implementação de `IEngineTracer` no controller (via construtor ou `set_tracer`).
+
+```cpp
+#include <iostream>
+#include "engine/core/contracts/i_engine_tracer.hpp"
+
+class StdoutFrameTracer final : public vme::engine::core::contracts::IEngineTracer {
+public:
+    void trace_frame(const vme::engine::core::types::FrameTraceEvent& event) override {
+        std::cout << "frame=" << event.frame_index
+                  << " delta_time_ns=" << event.delta_time
+                  << " timestamp_ns=" << event.timestamp << "\n";
+    }
+};
+```
+
+### Campos emitidos em cada frame
+
+- `frame_index`: índice incremental do frame (`uint64`);
+- `delta_time`: delta do frame em nanossegundos (`int64`);
+- `timestamp`: timestamp monotônico do frame em nanossegundos (`int64`, epoch do `steady_clock`).
+
+Observação de performance: quando `enable_frame_trace == false`, o caminho de `tick` retorna cedo (sem normalização temporal nem chamada de tracer).
 
 ## 1) Exemplo nominal: `initialize -> tick -> pause -> resume -> shutdown`
 

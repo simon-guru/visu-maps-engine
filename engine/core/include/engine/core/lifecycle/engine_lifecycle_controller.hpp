@@ -15,6 +15,7 @@
 // Interfaces públicas consumidas pelo controller.
 #include "engine/core/contracts/i_engine_lifecycle.hpp"
 #include "engine/core/contracts/i_engine_logger.hpp"
+#include "engine/core/contracts/i_engine_tracer.hpp"
 
 namespace vme::engine::core::lifecycle {
 
@@ -30,12 +31,17 @@ namespace vme::engine::core::lifecycle {
 class EngineLifecycleController final : public contracts::IEngineLifecycle {
 public:
     // Construtor opcionalmente recebe logger não-proprietário.
-    explicit EngineLifecycleController(contracts::IEngineLogger* logger = nullptr) noexcept;
+    explicit EngineLifecycleController(
+        contracts::IEngineLogger* logger = nullptr,
+        contracts::IEngineTracer* tracer = nullptr) noexcept;
     // Destrutor virtual herdado da interface; aqui permanece padrão.
     ~EngineLifecycleController() override = default;
 
     // Atualiza logger opcional em runtime. Ponteiro nulo desabilita emissão.
     void set_logger(contracts::IEngineLogger* logger) noexcept;
+
+    // Atualiza tracer opcional em runtime. Ponteiro nulo desabilita emissão.
+    void set_tracer(contracts::IEngineTracer* tracer) noexcept;
 
     // Bootstrap inicial do runtime.
     types::EngineError initialize(const types::EngineConfig& config) override;
@@ -67,10 +73,16 @@ private:
         types::EngineState state_after,
         const types::EngineError& result) const;
 
-    // Mutex que protege leitura/escrita de `state_`, `config_` e `logger_`.
+
+    // Emite trace de frame quando habilitado por configuração e tracer disponível.
+    void trace_frame_event(const types::FrameContext& frame_context) const;
+
+    // Mutex que protege leitura/escrita de `state_`, `config_`, `logger_` e `tracer_`.
     mutable std::mutex mutex_ {};
     // Dependência opcional de logging (não proprietária).
     contracts::IEngineLogger* logger_ {nullptr};
+    // Dependência opcional de tracing de frame (não proprietária).
+    contracts::IEngineTracer* tracer_ {nullptr};
     // Configuração efetiva após initialize.
     types::EngineConfig config_ {};
     // Estado da máquina de lifecycle.
