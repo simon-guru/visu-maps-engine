@@ -114,7 +114,16 @@ engine/gfx/
 
 > Decisão: preferimos falhar cedo em validações de API a aceitar estado inválido e falhar tarde no backend.
 
-## Critérios de aceitação desta etapa
+## Modelo de ciclo de vida (alto nível)
+
+1. Criar `IGfxInstance`.
+2. Selecionar adapter e criar `IGfxDevice`.
+3. Criar `IGfxQueue` e `IGfxSwapchain`.
+4. Alocar recursos/pipelines com validação de descritores.
+5. Gravar comandos via `CommandEncoder` e finalizar em `CommandBuffer`.
+6. Submeter em `IGfxQueue` com dependências de sincronização.
+7. Apresentar imagem no `IGfxSwapchain`.
+8. Descartar recursos com ownership explícito.
 
 - superfície pública em poucos headers coesos;
 - contrato compilável para Vulkan, Metal, GLES e WebGL sem `#ifdef` na camada de uso;
@@ -122,10 +131,14 @@ engine/gfx/
 - sincronização abstrata suficiente para dependências de render pass e upload;
 - documentação explícita sobre obrigatório vs opcional por backend.
 
-## Próximas entregas
+## Status de conclusão desta fase (Done)
 
-1. publicar esqueleto de headers em `include/engine/gfx/*`;
-2. definir matriz de capacidades por backend (mínimo comum + extensões);
-3. prototipar implementação stub em `src/` com validações de contrato;
-4. criar testes unitários de descritores e integração de gravação/submissão;
-5. integrar primeira versão com `engine/render` para um frame básico.
+- [x] contratos públicos mínimos definidos (`Instance`, `Device`, `Queue`, `Swapchain`, comandos e sync);
+- [x] stubs determinísticos implementados para validação de semântica;
+- [x] testes unitários e integrações básicas cobrindo encode/submit/present;
+- [x] primeira integração com `engine/render` via caminho de frame mínimo.
+
+## Próximo módulo
+
+Com os critérios desta fase fechados, a evolução natural é o módulo `engine/render`
+consumindo exclusivamente a API pública de `engine/gfx`.

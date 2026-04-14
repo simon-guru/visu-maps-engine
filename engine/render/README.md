@@ -9,13 +9,13 @@ Pipeline de renderização do mapa.
 - gerenciamento de passes e qualidade visual;
 - renderização de marcadores (regiões, pessoas, objetos, POIs).
 
-## Requisitos funcionais de marcadores
+## Status atual
 
-- customização por tema (ícone, cor, tamanho, texto);
-- atualização dinâmica sem rebuild completo da cena;
-- suporte a add/update/remove em lote;
-- política de prioridade visual (z-order/layer).
+- caminho mínimo de frame implementado em `basic_frame_renderer` usando apenas contratos públicos de `engine/gfx`.
+- fluxo implementado: `acquire -> encode -> submit -> present`.
 
-## Status
+## Próximo foco
 
-Desenho conceitual pronto; implementação concreta pendente.
+- evoluir do frame mínimo para passes separados (background, tiles, overlays);
+- introduzir descritores de material/estado vinculados a pipelines de `engine/gfx`;
+- conectar composição real de camadas e sistema de marcadores.
