@@ -11,6 +11,7 @@ using vme::engine::gfx::contracts::FenceState;
 using vme::engine::gfx::contracts::FenceValue;
 using vme::engine::gfx::contracts::QueueSubmitErrorCode;
 using vme::engine::gfx::contracts::QueueTimeline;
+using vme::engine::gfx::contracts::QueueType;
 using vme::engine::gfx::contracts::SubmitBatch;
 using vme::engine::gfx::contracts::SubmitInfo;
 using vme::engine::gfx::contracts::TimelineSignalInfo;
@@ -112,6 +113,81 @@ void test_single_submit_can_signal_multiple_timelines() {
     assert(transfer_timeline.value == 5);
 }
 
+void test_rejects_timeline_and_fence_regression() {
+    auto encoder = vme::engine::gfx::commands::create_command_encoder_stub();
+    assert(encoder->draw(DrawCommand {.vertex_count = 3}).ok());
+    const auto finish = encoder->finish(CommandBufferDesc {.label = "regression"});
+    assert(finish.ok());
+
+    QueueTimeline timeline {.value = 9};
+    FenceState fence {.completed_value = FenceValue {6}};
+
+    SubmitInfo submit{};
+    submit.command_buffer = finish.command_buffer.get();
+    submit.signals.push_back(TimelineSignalInfo {.timeline = &timeline, .value = 8});
+    submit.fence_signal = {.fence = &fence, .value = FenceValue {5}};
+
+    auto queue = vme::engine::gfx::contracts::create_gfx_queue_stub();
+    const auto submit_result = queue->submit(submit);
+    assert(submit_result.code == QueueSubmitErrorCode::kInvalidArgument);
+}
+
+void test_submit_batch_supports_chained_dependencies_within_batch() {
+    auto encoder_a = vme::engine::gfx::commands::create_command_encoder_stub();
+    auto encoder_b = vme::engine::gfx::commands::create_command_encoder_stub();
+    assert(encoder_a->draw(DrawCommand {.vertex_count = 3}).ok());
+    assert(encoder_b->draw(DrawCommand {.vertex_count = 3}).ok());
+
+    const auto finish_a = encoder_a->finish(CommandBufferDesc {.label = "chain-a"});
+    const auto finish_b = encoder_b->finish(CommandBufferDesc {.label = "chain-b"});
+    assert(finish_a.ok());
+    assert(finish_b.ok());
+
+    QueueTimeline timeline{};
+
+    SubmitInfo first{};
+    first.command_buffer = finish_a.command_buffer.get();
+    first.signals.push_back(TimelineSignalInfo {.timeline = &timeline, .value = 2});
+
+    SubmitInfo second{};
+    second.command_buffer = finish_b.command_buffer.get();
+    second.waits.push_back(TimelineWaitInfo {.timeline = &timeline, .min_value = 2});
+    second.signals.push_back(TimelineSignalInfo {.timeline = &timeline, .value = 3});
+
+    SubmitBatch batch{};
+    batch.submissions.push_back(first);
+    batch.submissions.push_back(second);
+
+    auto queue = vme::engine::gfx::contracts::create_gfx_queue_stub();
+    const auto batch_submit = queue->submit_batch(batch);
+    assert(batch_submit.ok());
+    assert(queue->pending_submission_count() == 2);
+
+    assert(queue->process_next_submission().ok());
+    assert(queue->process_next_submission().ok());
+    assert(timeline.value == 3);
+}
+
+void test_device_create_queue_enables_end_to_end_submit() {
+    auto device = vme::engine::gfx::contracts::create_gfx_device_stub();
+    assert(device);
+
+    const auto queue_result = device->create_queue(QueueType::kGraphics);
+    assert(queue_result.ok());
+
+    auto encoder = vme::engine::gfx::commands::create_command_encoder_stub();
+    assert(encoder->draw(DrawCommand {.vertex_count = 3}).ok());
+    const auto finish = encoder->finish(CommandBufferDesc {.label = "device-path"});
+    assert(finish.ok());
+
+    SubmitInfo submit{};
+    submit.command_buffer = finish.command_buffer.get();
+
+    assert(queue_result.queue->submit(submit).ok());
+    assert(queue_result.queue->process_next_submission().ok());
+    assert(queue_result.queue->completed_submission_count() == 1);
+}
+
 }  // namespace
 
 int main() {
@@ -119,5 +195,8 @@ int main() {
     test_submit_batch_validates_all_entries_before_enqueue();
     test_process_next_submission_fails_when_queue_is_empty();
     test_single_submit_can_signal_multiple_timelines();
+    test_rejects_timeline_and_fence_regression();
+    test_submit_batch_supports_chained_dependencies_within_batch();
+    test_device_create_queue_enables_end_to_end_submit();
     return 0;
 }

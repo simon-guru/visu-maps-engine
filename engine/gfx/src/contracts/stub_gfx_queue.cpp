@@ -8,6 +8,7 @@
 #include "engine/gfx/contracts/factory.hpp"
 
 #include <deque>
+#include <unordered_map>
 
 namespace vme::engine::gfx::contracts {
 namespace {
@@ -25,8 +26,12 @@ public:
     }
 
     QueueSubmitResult submit_batch(const SubmitBatch& submit_batch) override {
+        std::unordered_map<QueueTimeline*, std::uint64_t> timeline_projection{};
+        std::unordered_map<FenceState*, std::uint64_t> fence_projection{};
+
         for (const auto& submit_info : submit_batch.submissions) {
-            const auto validation = validate_submit(submit_info);
+            const auto validation =
+                validate_submit_with_projection(submit_info, timeline_projection, fence_projection);
             if (!validation.ok()) {
                 return validation;
             }
@@ -68,7 +73,10 @@ public:
     }
 
 private:
-    static QueueSubmitResult validate_submit(const SubmitInfo& submit_info) {
+    static QueueSubmitResult validate_submit_with_projection(
+        const SubmitInfo& submit_info,
+        std::unordered_map<QueueTimeline*, std::uint64_t>& timeline_projection,
+        std::unordered_map<FenceState*, std::uint64_t>& fence_projection) {
         if (submit_info.command_buffer == nullptr) {
             return {QueueSubmitErrorCode::kInvalidArgument, "submit requires a valid command buffer"};
         }
@@ -79,7 +87,11 @@ private:
                         "submit wait timeline reference cannot be null"};
             }
 
-            if (wait.timeline->value < wait.min_value) {
+            const auto projection_it = timeline_projection.find(wait.timeline);
+            const auto visible_value =
+                projection_it == timeline_projection.end() ? wait.timeline->value : projection_it->second;
+
+            if (visible_value < wait.min_value) {
                 return {QueueSubmitErrorCode::kSyncUnresolved,
                         "submit wait timeline dependency is not satisfied"};
             }
@@ -90,19 +102,61 @@ private:
                 return {QueueSubmitErrorCode::kInvalidArgument,
                         "submit signal timeline reference cannot be null"};
             }
+
+            const auto projection_it = timeline_projection.find(signal.timeline);
+            const auto visible_value =
+                projection_it == timeline_projection.end() ? signal.timeline->value : projection_it->second;
+
+            if (signal.value < visible_value) {
+                return {QueueSubmitErrorCode::kInvalidArgument,
+                        "submit signal timeline value cannot regress"};
+            }
+
+            timeline_projection[signal.timeline] = signal.value;
+        }
+
+        if (submit_info.fence_signal.fence != nullptr) {
+            const auto projection_it = fence_projection.find(submit_info.fence_signal.fence);
+            const auto visible_value = projection_it == fence_projection.end()
+                                         ? submit_info.fence_signal.fence->completed_value.value
+                                         : projection_it->second;
+
+            if (submit_info.fence_signal.value.value < visible_value) {
+                return {QueueSubmitErrorCode::kInvalidArgument,
+                        "submit fence value cannot regress"};
+            }
+
+            fence_projection[submit_info.fence_signal.fence] = submit_info.fence_signal.value.value;
         }
 
         return QueueSubmitResult::ok_result();
+    }
+
+    static QueueSubmitResult validate_submit(const SubmitInfo& submit_info) {
+        std::unordered_map<QueueTimeline*, std::uint64_t> timeline_projection{};
+        std::unordered_map<FenceState*, std::uint64_t> fence_projection{};
+        return validate_submit_with_projection(submit_info, timeline_projection, fence_projection);
     }
 
     std::deque<SubmitInfo> queue_{};
     std::uint64_t completed_submissions_{0};
 };
 
+class StubGfxDevice final : public IGfxDevice {
+public:
+    CreateQueueResult create_queue(QueueType /*queue_type*/) override {
+        return {create_gfx_queue_stub(), QueueSubmitResult::ok_result()};
+    }
+};
+
 }  // namespace
 
 std::unique_ptr<IGfxQueue> create_gfx_queue_stub() {
     return std::make_unique<StubGfxQueue>();
+}
+
+std::unique_ptr<IGfxDevice> create_gfx_device_stub() {
+    return std::make_unique<StubGfxDevice>();
 }
 
 }  // namespace vme::engine::gfx::contracts

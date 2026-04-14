@@ -14,8 +14,9 @@ Interfaces centrais do módulo `engine/gfx`.
 
 - `i_gfx_queue.hpp` define `SubmitInfo` e `SubmitBatch` com dependências explícitas;
 - `QueueTimeline` e `FenceValue` formalizam sincronização incremental (timeline/fence por valor);
-- `i_gfx_device.hpp` introduz `IGfxDevice::create_queue()` para desacoplar consumidores de factories de teste;
-- `factory.hpp` expõe `create_gfx_queue_stub()` para testes de integração e validação de fluxo.
+- validação de monotonicidade em sinais impede regressão de timeline/fence;
+- `i_gfx_device.hpp` introduz `IGfxDevice::create_queue()`;
+- `factory.hpp` expõe `create_gfx_queue_stub()` e `create_gfx_device_stub()` para testes end-to-end.
 
 ## Regras de contrato
 
