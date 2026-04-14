@@ -6,9 +6,14 @@ Interfaces centrais do módulo `engine/gfx`.
 
 - `IGfxInstance`: criação/destruição do contexto gráfico global;
 - `IGfxDevice`: recursos, pipelines, capacidades e filas;
-- `IGfxQueue`: submissão, espera e sinalização;
+- `IGfxQueue`: submissão de `ICommandBuffer` para execução;
 - `IGfxSwapchain`: acquire/present/recreate;
 - `IResourceAllocator`: estratégia de alocação/subalocação.
+
+## Estado atual da implementação
+
+- `i_gfx_queue.hpp` foi introduzido como contrato mínimo inicial para submissão.
+- demais contratos permanecem documentados e serão implementados nas próximas etapas.
 
 ## Regras de contrato
 
