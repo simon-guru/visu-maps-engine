@@ -12,8 +12,9 @@ Interfaces centrais do módulo `engine/gfx`.
 
 ## Estado atual da implementação
 
-- `i_gfx_queue.hpp` foi introduzido como contrato mínimo inicial para submissão.
-- demais contratos permanecem documentados e serão implementados nas próximas etapas.
+- `i_gfx_queue.hpp` define `SubmitInfo` e `SubmitBatch` para suportar dependências explícitas de sincronização;
+- `FenceState` e `SemaphoreState` formalizam sinalização básica CPU/GPU e GPU/GPU no contrato;
+- `factory.hpp` expõe `create_gfx_queue_stub()` para testes de integração e validação de fluxo.
 
 ## Regras de contrato
 
