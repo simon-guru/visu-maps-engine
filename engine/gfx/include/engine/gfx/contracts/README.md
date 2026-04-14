@@ -5,15 +5,16 @@ Interfaces centrais do módulo `engine/gfx`.
 ## Contratos mínimos
 
 - `IGfxInstance`: criação/destruição do contexto gráfico global;
-- `IGfxDevice`: recursos, pipelines, capacidades e filas;
+- `IGfxDevice`: recursos, pipelines, capacidades e criação de filas;
 - `IGfxQueue`: submissão de `ICommandBuffer` para execução;
 - `IGfxSwapchain`: acquire/present/recreate;
 - `IResourceAllocator`: estratégia de alocação/subalocação.
 
 ## Estado atual da implementação
 
-- `i_gfx_queue.hpp` define `SubmitInfo` e `SubmitBatch` para suportar dependências explícitas de sincronização;
-- `FenceState` e `SemaphoreState` formalizam sinalização básica CPU/GPU e GPU/GPU no contrato;
+- `i_gfx_queue.hpp` define `SubmitInfo` e `SubmitBatch` com dependências explícitas;
+- `QueueTimeline` e `FenceValue` formalizam sincronização incremental (timeline/fence por valor);
+- `i_gfx_device.hpp` introduz `IGfxDevice::create_queue()` para desacoplar consumidores de factories de teste;
 - `factory.hpp` expõe `create_gfx_queue_stub()` para testes de integração e validação de fluxo.
 
 ## Regras de contrato

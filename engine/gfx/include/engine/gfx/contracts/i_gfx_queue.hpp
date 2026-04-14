@@ -15,33 +15,48 @@
 namespace vme::engine::gfx::contracts {
 
 /**
- * @brief Estado simplificado de fence para sincronização CPU <- GPU.
+ * @brief Valor monotônico de timeline para sincronização incremental.
  */
-struct FenceState {
-    bool signaled{false};
-};
-
-/**
- * @brief Estado simplificado de semaphore para sincronização GPU <-/-> GPU.
- */
-struct SemaphoreState {
+struct QueueTimeline {
     std::uint64_t value{0};
 };
 
 /**
- * @brief Dependência de espera de semaphore em submissão.
+ * @brief Valor explícito de fence usado para sinalização por submissão.
  */
-struct SemaphoreWaitInfo {
-    SemaphoreState* semaphore{nullptr};
+struct FenceValue {
+    std::uint64_t value{0};
+};
+
+/**
+ * @brief Estado de fence com último valor concluído pela fila.
+ */
+struct FenceState {
+    FenceValue completed_value{};
+};
+
+/**
+ * @brief Dependência de espera em timeline.
+ */
+struct TimelineWaitInfo {
+    QueueTimeline* timeline{nullptr};
     std::uint64_t min_value{1};
 };
 
 /**
- * @brief Sinalização de semaphore após execução de submissão.
+ * @brief Sinalização de timeline após execução da submissão.
  */
-struct SemaphoreSignalInfo {
-    SemaphoreState* semaphore{nullptr};
+struct TimelineSignalInfo {
+    QueueTimeline* timeline{nullptr};
     std::uint64_t value{1};
+};
+
+/**
+ * @brief Sinalização de fence após execução da submissão.
+ */
+struct FenceSignalInfo {
+    FenceState* fence{nullptr};
+    FenceValue value{1};
 };
 
 /**
@@ -49,9 +64,9 @@ struct SemaphoreSignalInfo {
  */
 struct SubmitInfo {
     const commands::ICommandBuffer* command_buffer{nullptr};
-    std::vector<SemaphoreWaitInfo> wait_semaphores{};
-    std::vector<SemaphoreSignalInfo> signal_semaphores{};
-    FenceState* signal_fence{nullptr};
+    std::vector<TimelineWaitInfo> waits{};
+    std::vector<TimelineSignalInfo> signals{};
+    FenceSignalInfo fence_signal{};
 };
 
 /**
@@ -69,7 +84,7 @@ enum class QueueSubmitErrorCode : std::uint16_t {
 };
 
 /**
- * @brief Resultado de submissão de command buffer para fila.
+ * @brief Resultado de submissão/processamento de fila.
  */
 struct QueueSubmitResult {
     QueueSubmitErrorCode code{QueueSubmitErrorCode::kOk};

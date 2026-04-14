@@ -8,7 +8,6 @@
 #include "engine/gfx/contracts/factory.hpp"
 
 #include <deque>
-#include <utility>
 
 namespace vme::engine::gfx::contracts {
 namespace {
@@ -45,15 +44,15 @@ public:
             return {QueueSubmitErrorCode::kInvalidArgument, "queue has no pending submissions"};
         }
 
-        SubmitInfo submission = queue_.front();
+        const SubmitInfo submission = queue_.front();
         queue_.pop_front();
 
-        for (const auto& signal : submission.signal_semaphores) {
-            signal.semaphore->value = signal.value;
+        for (const auto& signal : submission.signals) {
+            signal.timeline->value = signal.value;
         }
 
-        if (submission.signal_fence != nullptr) {
-            submission.signal_fence->signaled = true;
+        if (submission.fence_signal.fence != nullptr) {
+            submission.fence_signal.fence->completed_value = submission.fence_signal.value;
         }
 
         ++completed_submissions_;
@@ -74,22 +73,22 @@ private:
             return {QueueSubmitErrorCode::kInvalidArgument, "submit requires a valid command buffer"};
         }
 
-        for (const auto& wait : submit_info.wait_semaphores) {
-            if (wait.semaphore == nullptr) {
+        for (const auto& wait : submit_info.waits) {
+            if (wait.timeline == nullptr) {
                 return {QueueSubmitErrorCode::kInvalidArgument,
-                        "submit wait semaphore reference cannot be null"};
+                        "submit wait timeline reference cannot be null"};
             }
 
-            if (wait.semaphore->value < wait.min_value) {
+            if (wait.timeline->value < wait.min_value) {
                 return {QueueSubmitErrorCode::kSyncUnresolved,
-                        "submit wait semaphore dependency is not satisfied"};
+                        "submit wait timeline dependency is not satisfied"};
             }
         }
 
-        for (const auto& signal : submit_info.signal_semaphores) {
-            if (signal.semaphore == nullptr) {
+        for (const auto& signal : submit_info.signals) {
+            if (signal.timeline == nullptr) {
                 return {QueueSubmitErrorCode::kInvalidArgument,
-                        "submit signal semaphore reference cannot be null"};
+                        "submit signal timeline reference cannot be null"};
             }
         }
 
