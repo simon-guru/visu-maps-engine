@@ -168,6 +168,41 @@ void test_submit_batch_supports_chained_dependencies_within_batch() {
     assert(timeline.value == 3);
 }
 
+
+void test_two_queues_keep_timeline_state_isolated() {
+    auto encoder_a = vme::engine::gfx::commands::create_command_encoder_stub();
+    auto encoder_b = vme::engine::gfx::commands::create_command_encoder_stub();
+    assert(encoder_a->draw(DrawCommand {.vertex_count = 3}).ok());
+    assert(encoder_b->draw(DrawCommand {.vertex_count = 3}).ok());
+
+    const auto finish_a = encoder_a->finish(CommandBufferDesc {.label = "q1"});
+    const auto finish_b = encoder_b->finish(CommandBufferDesc {.label = "q2"});
+    assert(finish_a.ok());
+    assert(finish_b.ok());
+
+    QueueTimeline timeline_q1{};
+    QueueTimeline timeline_q2{};
+
+    SubmitInfo submit_q1{};
+    submit_q1.command_buffer = finish_a.command_buffer.get();
+    submit_q1.signals.push_back(TimelineSignalInfo {.timeline = &timeline_q1, .value = 10});
+
+    SubmitInfo submit_q2{};
+    submit_q2.command_buffer = finish_b.command_buffer.get();
+    submit_q2.signals.push_back(TimelineSignalInfo {.timeline = &timeline_q2, .value = 20});
+
+    auto queue1 = vme::engine::gfx::contracts::create_gfx_queue_stub();
+    auto queue2 = vme::engine::gfx::contracts::create_gfx_queue_stub();
+
+    assert(queue1->submit(submit_q1).ok());
+    assert(queue2->submit(submit_q2).ok());
+    assert(queue1->process_next_submission().ok());
+    assert(queue2->process_next_submission().ok());
+
+    assert(timeline_q1.value == 10);
+    assert(timeline_q2.value == 20);
+}
+
 void test_device_create_queue_enables_end_to_end_submit() {
     auto device = vme::engine::gfx::contracts::create_gfx_device_stub();
     assert(device);
@@ -198,5 +233,6 @@ int main() {
     test_rejects_timeline_and_fence_regression();
     test_submit_batch_supports_chained_dependencies_within_batch();
     test_device_create_queue_enables_end_to_end_submit();
+    test_two_queues_keep_timeline_state_isolated();
     return 0;
 }

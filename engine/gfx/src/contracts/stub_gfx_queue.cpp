@@ -142,21 +142,10 @@ private:
     std::uint64_t completed_submissions_{0};
 };
 
-class StubGfxDevice final : public IGfxDevice {
-public:
-    CreateQueueResult create_queue(QueueType /*queue_type*/) override {
-        return {create_gfx_queue_stub(), QueueSubmitResult::ok_result()};
-    }
-};
-
 }  // namespace
 
 std::unique_ptr<IGfxQueue> create_gfx_queue_stub() {
     return std::make_unique<StubGfxQueue>();
-}
-
-std::unique_ptr<IGfxDevice> create_gfx_device_stub() {
-    return std::make_unique<StubGfxDevice>();
 }
 
 }  // namespace vme::engine::gfx::contracts

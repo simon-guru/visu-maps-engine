@@ -4,8 +4,7 @@ Implementações base para contratos (`Instance`, `Device`, `Queue`, `Swapchain`
 
 ## Escopo de implementação
 
-- gestão de estado de ciclo de vida (init, active, lost, disposed);
-- regras de erro e propagação de diagnósticos;
-- pontos de extensão para adapters concretos;
 - `StubGfxQueue` com fila interna, `SubmitInfo`/`SubmitBatch`, monotonicidade de timeline/fence e sinalização básica;
-- `StubGfxDevice` com `create_queue()` para integração end-to-end do fluxo device -> queue -> submit.
+- `StubGfxSwapchain` com ciclo mínimo acquire/present/recreate;
+- `StubGfxDevice` com criação de fila e swapchain;
+- `StubGfxInstance` com seleção de adapter e criação de device para fluxo end-to-end.

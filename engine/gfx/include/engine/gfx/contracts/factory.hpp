@@ -10,18 +10,13 @@
 #include <memory>
 
 #include "engine/gfx/contracts/i_gfx_device.hpp"
+#include "engine/gfx/contracts/i_gfx_instance.hpp"
 #include "engine/gfx/contracts/i_gfx_queue.hpp"
 
 namespace vme::engine::gfx::contracts {
 
-/**
- * @brief Cria implementação stub de `IGfxQueue` com fila interna e sinalização básica.
- */
 [[nodiscard]] std::unique_ptr<IGfxQueue> create_gfx_queue_stub();
-
-/**
- * @brief Cria implementação stub de `IGfxDevice` para validação end-to-end.
- */
 [[nodiscard]] std::unique_ptr<IGfxDevice> create_gfx_device_stub();
+[[nodiscard]] std::unique_ptr<IGfxInstance> create_gfx_instance_stub();
 
 }  // namespace vme::engine::gfx::contracts
