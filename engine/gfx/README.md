@@ -2,25 +2,42 @@
 
 Abstrações de recursos gráficos independentes de backend.
 
-## Objetivo nesta fase
+## Objetivo desta fase
 
 Definir uma API gráfica mínima, consistente e estável para que o restante do engine (`render`, `tiles`, `services`) consiga emitir trabalho de GPU sem depender diretamente de Vulkan, Metal, GLES ou WebGL.
 
+> Decisão: nesta etapa, priorizamos **contrato e semântica** antes de performance fina.
+> 
+> **Por quê?** Mudar contrato depois de integrar `render` e `tiles` custa muito mais do que otimizar detalhes de backend cedo demais.
+
+## Conceitos centrais do módulo
+
+- **Instance**: contexto global da API gráfica e enumeração de adapters.
+- **Device**: dispositivo lógico com capacidades e fábricas de recursos/pipelines.
+- **Queue**: fila de execução com regras de submissão e sincronização.
+- **Swapchain**: fluxo de imagens de apresentação (acquire/present).
+- **Resource**: objetos de GPU (buffer, texture, sampler, shader module).
+- **Pipeline**: estado imutável da execução gráfica/compute.
+- **CommandEncoder/CommandBuffer**: gravação e materialização de comandos.
+- **Sync primitives**: barreiras e objetos de coordenação CPU↔GPU/GPU↔GPU.
+
 ## Escopo funcional
 
-- buffers/texturas;
-- pipelines e estados gráficos;
-- sincronização e comandos (em nível abstrato).
+- buffers e texturas;
+- pipelines e estados gráficos/compute;
+- sincronização e comandos em nível abstrato;
+- ciclo de vida previsível (criação, uso, descarte, erro).
 
 ## Responsabilidades do módulo
 
 - padronizar tipos de recurso (`Buffer`, `Texture`, `Sampler`, `ShaderModule`);
-- descrever pipelines gráficas/compute de forma declarativa e validável;
+- descrever pipelines de forma declarativa e validável;
 - encapsular command recording (`CommandEncoder`/`CommandBuffer`) sem semântica específica de API;
-- formalizar sincronização por primitives abstratas (barreiras, fences, semaphores e eventos);
-- controlar ciclo de vida de recursos com ownership explícito e descarte previsível.
+- formalizar sincronização por primitives abstratas (barriers, fences, semaphores, events);
+- controlar ownership e descarte explícito;
+- expor negociação de features por `DeviceCaps`.
 
-## Organização de diretórios proposta
+## Organização de diretórios
 
 ```text
 engine/gfx/
@@ -28,11 +45,11 @@ engine/gfx/
 ├── include/
 │   ├── README.md
 │   └── engine/gfx/
-│       ├── resources/README.md      # buffers, textures, samplers, views
+│       ├── resources/README.md      # tipos de recurso e descritores
 │       ├── pipeline/README.md       # pipeline layout, shader stages, states
-│       ├── commands/README.md       # encoder, command buffers, submission
+│       ├── commands/README.md       # encoder, command buffer, submission
 │       ├── sync/README.md           # barriers, fences, semaphores, timeline
-│       └── contracts/README.md      # interfaces de Device/Queue/Swapchain
+│       └── contracts/README.md      # interfaces Instance/Device/Queue/Swapchain
 ├── src/
 │   ├── README.md
 │   ├── resources/README.md
@@ -48,38 +65,71 @@ engine/gfx/
     └── README.md
 ```
 
-## Princípios da API (para portabilidade real)
+## Princípios da API (e racional)
 
-- **API enxuta por padrão**: todo tipo novo exige justificativa de uso em ao menos dois backends.
-- **Sem vazar detalhes de backend**: nada de flags/namespaces específicos de Vulkan, Metal, GLES ou WebGL na superfície pública.
-- **Feature negotiation explícita**: capacidades opcionais via queries (`DeviceCaps`) e caminhos de fallback definidos.
-- **Estados imutáveis onde possível**: descritores de pipeline e layouts são tratáveis como objetos de configuração estática.
-- **Command model uniforme**: mesmo fluxo mental de gravação/submissão em desktop, mobile e web.
+1. **API enxuta por padrão**
+   - Nova abstração só entra quando resolve problema recorrente em pelo menos dois backends.
+   - **Racional**: reduz custo de manutenção e evita “abstrações acidentais”.
+
+2. **Sem vazar detalhes de backend**
+   - Nenhuma flag, enum ou namespace público com nome de API concreta.
+   - **Racional**: garante que camada consumidora não dependa de ifdefs por plataforma.
+
+3. **Feature negotiation explícita**
+   - `DeviceCaps` define o que é obrigatório, opcional e indisponível.
+   - **Racional**: fallback explícito evita comportamento implícito divergente.
+
+4. **Estados imutáveis onde possível**
+   - Pipeline/layout/descritores são tratados como configuração estática.
+   - **Racional**: maior previsibilidade e melhor cache em múltiplos backends.
+
+5. **Command model uniforme**
+   - Mesmo fluxo mental em desktop, mobile e web.
+   - **Racional**: menor custo cognitivo para times de `render` e `tiles`.
 
 ## Contratos mínimos previstos
 
-- `IGfxInstance`: criação/destruição do contexto gráfico global;
+- `IGfxInstance`: criação/destruição do contexto global;
 - `IGfxDevice`: alocação de recursos, criação de pipeline e consulta de capacidades;
 - `IGfxQueue`: submissão de comandos e sincronização entre filas;
-- `IGfxSwapchain`: aquisição/apresentação de imagens de frame;
-- `IResourceAllocator`: estratégia de alocação/subalocação desacoplada da API concreta.
+- `IGfxSwapchain`: aquisição/apresentação de imagens;
+- `IResourceAllocator`: estratégia de alocação/subalocação desacoplada.
+
+## Modelo de ciclo de vida (alto nível)
+
+1. Criar `IGfxInstance`.
+2. Selecionar adapter e criar `IGfxDevice`.
+3. Criar `IGfxQueue` e `IGfxSwapchain`.
+4. Alocar recursos/pipelines com validação de descritores.
+5. Gravar comandos via `CommandEncoder` e finalizar em `CommandBuffer`.
+6. Submeter em `IGfxQueue` com dependências de sincronização.
+7. Apresentar imagem no `IGfxSwapchain`.
+8. Descartar recursos com ownership explícito.
+
+## Política de erro e validação
+
+- **Erros de contrato**: detectados cedo (na criação de descritores/objetos).
+- **Erros de execução**: retornados no submit/present com códigos categorizados.
+- **Validação opcional estendida**: modo debug com checks adicionais de uso incorreto.
+
+> Decisão: preferimos falhar cedo em validações de API a aceitar estado inválido e falhar tarde no backend.
 
 ## Critérios de aceitação desta etapa
 
-- a superfície pública cabe em um conjunto pequeno de headers coesos;
-- o mesmo contrato compila para backends Vulkan, Metal, GLES e WebGL sem `#ifdef` na camada de uso;
-- recursos e comandos têm ciclo de vida documentado (criação, uso, descarte, erros);
-- sincronização abstrata é suficiente para mapear dependências de render pass e upload;
-- documentação deixa claro o que é obrigatório vs opcional por backend.
+- superfície pública em poucos headers coesos;
+- contrato compilável para Vulkan, Metal, GLES e WebGL sem `#ifdef` na camada de uso;
+- ciclo de vida de recursos e comandos documentado;
+- sincronização abstrata suficiente para dependências de render pass e upload;
+- documentação explícita sobre obrigatório vs opcional por backend.
 
-## Reavaliação
+## Status de conclusão desta fase (Done)
 
-A API deve permanecer enxuta para reduzir custo de adaptação entre Vulkan, Metal, GLES e WebGL.
+- [x] contratos públicos mínimos definidos (`Instance`, `Device`, `Queue`, `Swapchain`, comandos e sync);
+- [x] stubs determinísticos implementados para validação de semântica;
+- [x] testes unitários e integrações básicas cobrindo encode/submit/present;
+- [x] primeira integração com `engine/render` via caminho de frame mínimo.
 
-## Próximas entregas
+## Próximo módulo
 
-1. publicar esqueleto de headers em `include/engine/gfx/*`;
-2. definir matriz de capacidades por backend (mínimo comum + extensões);
-3. prototipar implementação stub em `src/` com validações de contrato;
-4. criar testes unitários de descritores e integração de gravação/submissão;
-5. integrar primeira versão com `engine/render` para um frame básico.
+Com os critérios desta fase fechados, a evolução natural é o módulo `engine/render`
+consumindo exclusivamente a API pública de `engine/gfx`.

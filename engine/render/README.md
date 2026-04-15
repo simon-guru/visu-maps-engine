@@ -9,13 +9,15 @@ Pipeline de renderização do mapa.
 - gerenciamento de passes e qualidade visual;
 - renderização de marcadores (regiões, pessoas, objetos, POIs).
 
-## Requisitos funcionais de marcadores
+## Status atual
 
-- customização por tema (ícone, cor, tamanho, texto);
-- atualização dinâmica sem rebuild completo da cena;
-- suporte a add/update/remove em lote;
-- política de prioridade visual (z-order/layer).
+- caminho mínimo de frame implementado com API pública de `engine/gfx`.
+- plano de frame separado em passes (`background`, `tiles`, `overlays`).
+- `SceneRenderData` agora é construído a partir de `tiles::MapRenderSnapshot`.
+- cache de descritores de material/pipeline por cena com invalidação por revisão de estilo/pipeline.
 
-## Status
+## Próximo foco
 
-Desenho conceitual pronto; implementação concreta pendente.
+- substituir snapshots de teste por snapshots vindos do fluxo real do módulo `tiles`;
+- integrar política de invalidação por tema com eventos do módulo `services`;
+- introduzir validações de compatibilidade material/pass por tipo de pipeline.
