@@ -1,4 +1,5 @@
 add_subdirectory(core)
 add_subdirectory(gfx)
 add_subdirectory(tiles)
+add_subdirectory(services)
 add_subdirectory(render)

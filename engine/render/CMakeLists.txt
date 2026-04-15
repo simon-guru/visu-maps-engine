@@ -14,6 +14,7 @@ target_link_libraries(engine_render
     PUBLIC
         engine_gfx
         engine_tiles
+        engine_services
 )
 
 target_compile_features(engine_render PUBLIC cxx_std_20)

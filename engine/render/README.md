@@ -13,11 +13,11 @@ Pipeline de renderização do mapa.
 
 - caminho mínimo de frame implementado com API pública de `engine/gfx`.
 - plano de frame separado em passes (`background`, `tiles`, `overlays`).
-- `SceneRenderData` agora é construído a partir de `tiles::MapRenderSnapshot`.
-- cache de descritores de material/pipeline por cena com invalidação por revisão de estilo/pipeline.
+- `SceneRenderData` é construído a partir de snapshots do cache de tiles (`tiles::RenderSnapshotCache`).
+- cache de descritores de material/pipeline por cena com invalidação por eventos de tema/estilo (`services::ThemeStyleChangedEvent`) e revisões de pipeline.
 
 ## Próximo foco
 
-- substituir snapshots de teste por snapshots vindos do fluxo real do módulo `tiles`;
-- integrar política de invalidação por tema com eventos do módulo `services`;
+- conectar `RenderSnapshotCache` ao pipeline real de ingestão de tiles;
+- integrar invalidação de cache com o bus de eventos de `services`;
 - introduzir validações de compatibilidade material/pass por tipo de pipeline.
