@@ -114,7 +114,14 @@ engine/gfx/
 
 > Decisão: preferimos falhar cedo em validações de API a aceitar estado inválido e falhar tarde no backend.
 
-## Critérios de aceitação desta etapa
+1. Criar `IGfxInstance`.
+2. Selecionar adapter e criar `IGfxDevice`.
+3. Criar `IGfxQueue` e `IGfxSwapchain`.
+4. Alocar recursos/pipelines com validação de descritores.
+5. Gravar comandos via `CommandEncoder` e finalizar em `CommandBuffer`.
+6. Submeter em `IGfxQueue` com dependências de sincronização.
+7. Apresentar imagem no `IGfxSwapchain`.
+8. Descartar recursos com ownership explícito.
 
 - superfície pública em poucos headers coesos;
 - contrato compilável para Vulkan, Metal, GLES e WebGL sem `#ifdef` na camada de uso;
