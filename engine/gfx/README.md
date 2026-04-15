@@ -87,7 +87,9 @@ engine/gfx/
    - Mesmo fluxo mental em desktop, mobile e web.
    - **Racional**: menor custo cognitivo para times de `render` e `tiles`.
 
-## Contratos mínimos previstos
+2. **Sem vazar detalhes de backend**
+   - Nenhuma flag, enum ou namespace público com nome de API concreta.
+   - **Racional**: garante que camada consumidora não dependa de ifdefs por plataforma.
 
 - `IGfxInstance`: criação/destruição do contexto global;
 - `IGfxDevice`: alocação de recursos, criação de pipeline e consulta de capacidades;
@@ -114,7 +116,9 @@ engine/gfx/
 
 > Decisão: preferimos falhar cedo em validações de API a aceitar estado inválido e falhar tarde no backend.
 
-## Critérios de aceitação desta etapa
+4. **Estados imutáveis onde possível**
+   - Pipeline/layout/descritores são tratados como configuração estática.
+   - **Racional**: maior previsibilidade e melhor cache em múltiplos backends.
 
 - superfície pública em poucos headers coesos;
 - contrato compilável para Vulkan, Metal, GLES e WebGL sem `#ifdef` na camada de uso;
