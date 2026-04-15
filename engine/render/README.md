@@ -9,13 +9,15 @@ Pipeline de renderização do mapa.
 - gerenciamento de passes e qualidade visual;
 - renderização de marcadores (regiões, pessoas, objetos, POIs).
 
-## Requisitos funcionais de marcadores
+## Status atual
 
-- customização por tema (ícone, cor, tamanho, texto);
-- atualização dinâmica sem rebuild completo da cena;
-- suporte a add/update/remove em lote;
-- política de prioridade visual (z-order/layer).
+- caminho mínimo de frame implementado com API pública de `engine/gfx`.
+- plano de frame separado em passes (`background`, `tiles`, `overlays`).
+- `SceneRenderData` é construído a partir de snapshots do cache de tiles (`tiles::RenderSnapshotCache`).
+- cache de descritores de material/pipeline por cena com invalidação por eventos de tema/estilo (`services::ThemeStyleChangedEvent`) e revisões de pipeline.
 
-## Status
+## Próximo foco
 
-Desenho conceitual pronto; implementação concreta pendente.
+- conectar `RenderSnapshotCache` ao pipeline real de ingestão de tiles;
+- integrar invalidação de cache com o bus de eventos de `services`;
+- introduzir validações de compatibilidade material/pass por tipo de pipeline.
