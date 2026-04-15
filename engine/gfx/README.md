@@ -114,8 +114,6 @@ engine/gfx/
 
 > Decisão: preferimos falhar cedo em validações de API a aceitar estado inválido e falhar tarde no backend.
 
-## Modelo de ciclo de vida (alto nível)
-
 1. Criar `IGfxInstance`.
 2. Selecionar adapter e criar `IGfxDevice`.
 3. Criar `IGfxQueue` e `IGfxSwapchain`.

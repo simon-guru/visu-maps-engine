@@ -14,19 +14,38 @@ BasicFrameResult run_basic_frame(
     gfx::contracts::IGfxDevice& /*device*/,
     gfx::contracts::IGfxQueue& queue,
     gfx::contracts::IGfxSwapchain& swapchain,
-    gfx::commands::ICommandEncoder& encoder) {
+    gfx::commands::ICommandEncoder& encoder,
+    const FramePlan& frame_plan) {
     if (instance.adapter_count() == 0) {
         return {false, "no graphics adapters available"};
     }
+
+    if (frame_plan.passes.empty()) {
+        return {false, "frame plan has no passes"};
+    }
+
+    std::uint32_t encoded_pass_count = 0;
+    std::uint32_t encoded_draw_count = 0;
 
     const auto acquire = swapchain.acquire_next_image();
     if (!acquire.ok()) {
         return {false, "swapchain acquire failed"};
     }
 
-    const auto draw_error = encoder.draw(gfx::commands::DrawCommand {.vertex_count = 3});
-    if (!draw_error.ok()) {
-        return {false, "command encoding failed"};
+    for (const auto& pass : frame_plan.passes) {
+        if (!is_valid_pass_descriptor(pass)) {
+            return {false, "invalid pass descriptor"};
+        }
+
+        ++encoded_pass_count;
+
+        for (std::uint32_t draw_index = 0; draw_index < pass.draw_calls; ++draw_index) {
+            const auto draw_error = encoder.draw(gfx::commands::DrawCommand {.vertex_count = 3});
+            if (!draw_error.ok()) {
+                return {false, "command encoding failed"};
+            }
+            ++encoded_draw_count;
+        }
     }
 
     const auto finish_result =
@@ -53,7 +72,26 @@ BasicFrameResult run_basic_frame(
         return {false, "swapchain present failed"};
     }
 
-    return {true, nullptr};
+    return {true, nullptr, encoded_pass_count, encoded_draw_count};
+}
+
+BasicFrameResult run_basic_frame_default(
+    gfx::contracts::IGfxInstance& instance,
+    gfx::contracts::IGfxDevice& device,
+    gfx::contracts::IGfxQueue& queue,
+    gfx::contracts::IGfxSwapchain& swapchain,
+    gfx::commands::ICommandEncoder& encoder) {
+    return run_basic_frame(instance, device, queue, swapchain, encoder, build_default_frame_plan());
+}
+
+BasicFrameResult run_basic_frame_scene(
+    gfx::contracts::IGfxInstance& instance,
+    gfx::contracts::IGfxDevice& device,
+    gfx::contracts::IGfxQueue& queue,
+    gfx::contracts::IGfxSwapchain& swapchain,
+    gfx::commands::ICommandEncoder& encoder,
+    const SceneRenderData& scene_data) {
+    return run_basic_frame(instance, device, queue, swapchain, encoder, build_frame_plan_from_scene(scene_data));
 }
 
 }  // namespace vme::engine::render

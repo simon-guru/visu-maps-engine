@@ -11,11 +11,13 @@ Pipeline de renderização do mapa.
 
 ## Status atual
 
-- caminho mínimo de frame implementado em `basic_frame_renderer` usando apenas contratos públicos de `engine/gfx`.
-- fluxo implementado: `acquire -> encode -> submit -> present`.
+- caminho mínimo de frame implementado com API pública de `engine/gfx`.
+- plano de frame separado em passes (`background`, `tiles`, `overlays`).
+- `SceneRenderData` agora é construído a partir de `tiles::MapRenderSnapshot`.
+- cache de descritores de material/pipeline por cena com invalidação por revisão de estilo/pipeline.
 
 ## Próximo foco
 
-- evoluir do frame mínimo para passes separados (background, tiles, overlays);
-- introduzir descritores de material/estado vinculados a pipelines de `engine/gfx`;
-- conectar composição real de camadas e sistema de marcadores.
+- substituir snapshots de teste por snapshots vindos do fluxo real do módulo `tiles`;
+- integrar política de invalidação por tema com eventos do módulo `services`;
+- introduzir validações de compatibilidade material/pass por tipo de pipeline.
