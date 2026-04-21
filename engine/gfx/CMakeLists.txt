@@ -2,6 +2,7 @@ add_library(engine_gfx STATIC
     src/commands/simple_command_encoder.cpp
     src/contracts/stub_gfx_queue.cpp
     src/contracts/stub_gfx_platform.cpp
+    src/resources/stub_resources.cpp
 )
 
 target_include_directories(engine_gfx

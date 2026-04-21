@@ -177,6 +177,25 @@ struct ShaderModuleDesc {
     std::string entry_point{"main"};
 };
 
+/**
+ * @brief Limites declarativos de recursos por backend/dispositivo.
+ *
+ * Decisão de design:
+ * - separa validação "de contrato" da validação "de capacidade" do dispositivo;
+ * - permite reutilizar os mesmos descritores em backends com limites diferentes.
+ */
+struct ResourceCaps {
+    std::uint64_t max_buffer_size_bytes{256ull * 1024ull * 1024ull};
+    std::uint32_t max_texture_dimension_1d{8192};
+    std::uint32_t max_texture_dimension_2d{8192};
+    std::uint32_t max_texture_dimension_3d{2048};
+    std::uint32_t max_texture_array_layers{2048};
+    std::uint32_t max_texture_mip_levels{14};
+    std::uint8_t max_sampler_anisotropy{16};
+    bool supports_storage_r32_float{true};
+    bool supports_storage_rgba16_float{false};
+};
+
 enum class ResourceViewType : std::uint8_t {
     BufferUniform,
     BufferStorage,

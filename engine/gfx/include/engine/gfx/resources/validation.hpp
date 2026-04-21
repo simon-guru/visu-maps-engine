@@ -28,6 +28,18 @@ namespace vme::engine::gfx::resources {
            format != TextureFormat::Undefined;
 }
 
+[[nodiscard]] inline bool texture_format_supported_for_storage_by_caps(const TextureFormat format,
+                                                                       const ResourceCaps& caps) {
+    if (format == TextureFormat::R32Float) {
+        return caps.supports_storage_r32_float;
+    }
+    if (format == TextureFormat::Rgba16Float) {
+        return caps.supports_storage_rgba16_float;
+    }
+
+    return texture_format_supports_storage(format);
+}
+
 [[nodiscard]] inline ResourceError validate_buffer_desc(const BufferDesc& desc) {
     // Motivo: buffer de tamanho zero cria objeto inválido em praticamente todos backends.
     if (desc.size_bytes == 0) {
@@ -58,6 +70,23 @@ namespace vme::engine::gfx::resources {
     if (has_flag(desc.usage, BufferUsage::Index) && (desc.size_bytes % 2u) != 0u) {
         return {ResourceErrorCode::InvalidArgument,
                 "index buffer size_bytes must be aligned to 2 bytes"};
+    }
+
+    return ResourceError::ok_result();
+}
+
+[[nodiscard]] inline ResourceError validate_buffer_desc(const BufferDesc& desc, const ResourceCaps& caps) {
+    // Estratégia em duas etapas:
+    // 1) valida regras universais de contrato;
+    // 2) valida limites específicos do backend/dispositivo.
+    const auto base_error = validate_buffer_desc(desc);
+    if (!base_error.ok()) {
+        return base_error;
+    }
+
+    if (desc.size_bytes > caps.max_buffer_size_bytes) {
+        return {ResourceErrorCode::CapabilityNotSupported,
+                "buffer size_bytes exceeds backend max_buffer_size_bytes"};
     }
 
     return ResourceError::ok_result();
@@ -122,6 +151,52 @@ namespace vme::engine::gfx::resources {
     return ResourceError::ok_result();
 }
 
+[[nodiscard]] inline ResourceError validate_texture_desc(const TextureDesc& desc, const ResourceCaps& caps) {
+    // Estratégia equivalente à de buffer para manter previsibilidade da API pública.
+    const auto base_error = validate_texture_desc(desc);
+    if (!base_error.ok()) {
+        return base_error;
+    }
+
+    if (desc.mip_levels > caps.max_texture_mip_levels) {
+        return {ResourceErrorCode::CapabilityNotSupported,
+                "texture mip_levels exceeds backend max_texture_mip_levels"};
+    }
+
+    if (desc.dimension == TextureDimension::D1) {
+        // 1D usa apenas largura; demais eixos já foram fixados pela validação base.
+        if (desc.width > caps.max_texture_dimension_1d) {
+            return {ResourceErrorCode::CapabilityNotSupported,
+                    "1D texture width exceeds backend max_texture_dimension_1d"};
+        }
+    } else if (desc.dimension == TextureDimension::D2) {
+        // 2D trata depth_or_layers como array layers.
+        if (desc.width > caps.max_texture_dimension_2d || desc.height > caps.max_texture_dimension_2d) {
+            return {ResourceErrorCode::CapabilityNotSupported,
+                    "2D texture dimensions exceed backend max_texture_dimension_2d"};
+        }
+        if (desc.depth_or_layers > caps.max_texture_array_layers) {
+            return {ResourceErrorCode::CapabilityNotSupported,
+                    "2D texture array layers exceed backend max_texture_array_layers"};
+        }
+    } else {
+        // 3D usa depth_or_layers como profundidade volumétrica.
+        if (desc.width > caps.max_texture_dimension_3d || desc.height > caps.max_texture_dimension_3d ||
+            desc.depth_or_layers > caps.max_texture_dimension_3d) {
+            return {ResourceErrorCode::CapabilityNotSupported,
+                    "3D texture dimensions exceed backend max_texture_dimension_3d"};
+        }
+    }
+
+    if (has_flag(desc.usage, TextureUsage::Storage) &&
+        !texture_format_supported_for_storage_by_caps(desc.format, caps)) {
+        return {ResourceErrorCode::CapabilityNotSupported,
+                "texture format is not supported for Storage usage by this backend"};
+    }
+
+    return ResourceError::ok_result();
+}
+
 [[nodiscard]] inline ResourceError validate_sampler_desc(const SamplerDesc& desc) {
     // Motivo: range de LOD invertido é estado inválido e difícil de depurar no runtime.
     if (desc.min_lod > desc.max_lod) {
@@ -136,6 +211,21 @@ namespace vme::engine::gfx::resources {
     if (!desc.anisotropy_enabled && desc.max_anisotropy != 1) {
         return {ResourceErrorCode::InvalidArgument,
                 "max_anisotropy must remain 1 when anisotropy is disabled"};
+    }
+
+    return ResourceError::ok_result();
+}
+
+[[nodiscard]] inline ResourceError validate_sampler_desc(const SamplerDesc& desc, const ResourceCaps& caps) {
+    // Mantém semântica: contrato primeiro, capacidade depois.
+    const auto base_error = validate_sampler_desc(desc);
+    if (!base_error.ok()) {
+        return base_error;
+    }
+
+    if (desc.anisotropy_enabled && desc.max_anisotropy > caps.max_sampler_anisotropy) {
+        return {ResourceErrorCode::CapabilityNotSupported,
+                "sampler max_anisotropy exceeds backend max_sampler_anisotropy"};
     }
 
     return ResourceError::ok_result();

@@ -5,7 +5,7 @@ Interfaces centrais do módulo `engine/gfx`.
 ## Contratos mínimos
 
 - `IGfxInstance`: enumeração de adapters e criação de `IGfxDevice`;
-- `IGfxDevice`: criação de filas (`IGfxQueue`) e swapchain (`IGfxSwapchain`);
+- `IGfxDevice`: criação de filas (`IGfxQueue`), swapchain (`IGfxSwapchain`) e recursos (`Buffer/Texture/Sampler/ShaderModule/ResourceView`);
 - `IGfxQueue`: submissão de `ICommandBuffer` para execução;
 - `IGfxSwapchain`: acquire/present/recreate;
 - `IResourceAllocator`: estratégia de alocação/subalocação.

@@ -35,6 +35,6 @@ Contratos públicos para recursos de GPU.
 
 ## Próximos passos
 
-- Integrar os contratos ao `IGfxDevice` com métodos `create_*` por tipo de recurso.
-- Implementar camada stub mínima em `engine/gfx/src/resources` para testes de criação.
-- Adicionar validações de limites por backend (dimensão máxima, anisotropia máxima e formatos suportados).
+- Implementar camada de tradução para backends reais (Vulkan/Metal/WebGL) preservando os contratos novos no `IGfxDevice`.
+- Adicionar rastreamento de ciclo de vida (debug labels + leak tracking opcional) para recursos no stub e backends reais.
+- Expandir matriz de formatos suportados por backend para cobrir capacidades finas (sampled/storage/render-target por formato).

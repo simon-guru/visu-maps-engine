@@ -125,6 +125,34 @@ void test_sampler_and_shader_validation_reject_invalid_descriptors() {
     assert(shader_result.code == ResourceErrorCode::InvalidArgument);
 }
 
+void test_caps_validation_rejects_backend_limits() {
+    const BufferDesc buffer_desc {
+        .size_bytes = 1024,
+        .usage = BufferUsage::CopyDst,
+    };
+
+    vme::engine::gfx::resources::ResourceCaps caps{};
+    caps.max_buffer_size_bytes = 512;
+    const auto buffer_result = vme::engine::gfx::resources::validate_buffer_desc(buffer_desc, caps);
+    assert(buffer_result.code == ResourceErrorCode::CapabilityNotSupported);
+
+    const TextureDesc texture_desc {
+        .dimension = TextureDimension::D2,
+        .format = TextureFormat::Rgba16Float,
+        .usage = TextureUsage::Storage,
+        .width = 32,
+        .height = 32,
+        .depth_or_layers = 1,
+        .mip_levels = 1,
+        .sample_count = 1,
+    };
+
+    caps.max_buffer_size_bytes = 2048;
+    caps.supports_storage_rgba16_float = false;
+    const auto texture_result = vme::engine::gfx::resources::validate_texture_desc(texture_desc, caps);
+    assert(texture_result.code == ResourceErrorCode::CapabilityNotSupported);
+}
+
 }  // namespace
 
 int main() {
@@ -134,5 +162,6 @@ int main() {
     test_texture_view_validation_checks_bounds_and_type();
     test_buffer_view_validation_requires_matching_usage();
     test_sampler_and_shader_validation_reject_invalid_descriptors();
+    test_caps_validation_rejects_backend_limits();
     return 0;
 }

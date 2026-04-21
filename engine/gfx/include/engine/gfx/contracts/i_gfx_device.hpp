@@ -12,6 +12,7 @@
 #include "engine/gfx/contracts/i_gfx_queue.hpp"
 #include "engine/gfx/contracts/i_gfx_swapchain.hpp"
 #include "engine/gfx/pipeline/validation.hpp"
+#include "engine/gfx/resources/factory.hpp"
 
 namespace vme::engine::gfx::contracts {
 
@@ -48,12 +49,30 @@ public:
     virtual CreateSwapchainResult create_swapchain(const SwapchainDesc& desc) = 0;
 
     [[nodiscard]] virtual const pipeline::DeviceCaps& device_caps() const noexcept = 0;
+    [[nodiscard]] virtual const resources::ResourceCaps& resource_caps() const noexcept = 0;
 
     virtual pipeline::CreateGraphicsPipelineResult
     create_graphics_pipeline(const pipeline::GraphicsPipelineDesc& desc) = 0;
 
     virtual pipeline::CreateComputePipelineResult
     create_compute_pipeline(const pipeline::ComputePipelineDesc& desc) = 0;
+
+    /**
+     * @brief Criação de recursos com validação explícita por contrato/capacidade.
+     *
+     * Decisão de design:
+     * - centralizar criação no device permite que cada backend aplique limites reais;
+     * - evita que chamadores manipulem handles nativos e reduz divergência entre APIs.
+     */
+    virtual resources::CreateBufferResult create_buffer(const resources::BufferDesc& desc) = 0;
+    virtual resources::CreateTextureResult create_texture(const resources::TextureDesc& desc) = 0;
+    virtual resources::CreateSamplerResult create_sampler(const resources::SamplerDesc& desc) = 0;
+    virtual resources::CreateShaderModuleResult create_shader_module(
+        const resources::ShaderModuleDesc& desc) = 0;
+    virtual resources::CreateResourceViewFromBufferResult create_resource_view(
+        const resources::ResourceViewDesc& desc, const resources::Buffer& buffer) = 0;
+    virtual resources::CreateResourceViewFromTextureResult create_resource_view(
+        const resources::ResourceViewDesc& desc, const resources::Texture& texture) = 0;
 };
 
 }  // namespace vme::engine::gfx::contracts
