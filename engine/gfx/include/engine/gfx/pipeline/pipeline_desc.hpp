@@ -14,23 +14,23 @@
 namespace vme::engine::gfx::pipeline {
 
 enum class ShaderStage : std::uint8_t {
-    kVertex,
-    kFragment,
-    kCompute,
+    Vertex,
+    Fragment,
+    Compute,
 };
 
 enum class ResourceType : std::uint8_t {
-    kUniformBuffer,
-    kStorageBuffer,
-    kSampledTexture,
-    kStorageTexture,
-    kSampler,
+    UniformBuffer,
+    StorageBuffer,
+    SampledTexture,
+    StorageTexture,
+    Sampler,
 };
 
 struct ResourceSlotDesc {
     std::uint32_t set{0};
     std::uint32_t binding{0};
-    ResourceType type{ResourceType::kUniformBuffer};
+    ResourceType type{ResourceType::UniformBuffer};
     std::vector<ShaderStage> visibility{};
 };
 
@@ -47,79 +47,90 @@ struct PipelineLayoutDesc {
 };
 
 struct ShaderStageDesc {
-    ShaderStage stage{ShaderStage::kVertex};
+    ShaderStage stage{ShaderStage::Vertex};
     std::string entry_point{"main"};
     std::string module_name{};
 };
 
 enum class PrimitiveTopology : std::uint8_t {
-    kTriangleList,
-    kTriangleStrip,
-    kLineList,
-    kLineStrip,
-    kPointList,
+    TriangleList,
+    TriangleStrip,
+    LineList,
+    LineStrip,
+    PointList,
 };
 
 enum class PolygonMode : std::uint8_t {
-    kFill,
-    kLine,
+    Fill,
+    Line,
 };
 
 enum class CullMode : std::uint8_t {
-    kNone,
-    kFront,
-    kBack,
+    None,
+    Front,
+    Back,
 };
 
 enum class FrontFace : std::uint8_t {
-    kCounterClockwise,
-    kClockwise,
+    CounterClockwise,
+    Clockwise,
 };
 
 enum class BlendFactor : std::uint8_t {
-    kZero,
-    kOne,
-    kSrcAlpha,
-    kOneMinusSrcAlpha,
+    Zero,
+    One,
+    SrcAlpha,
+    OneMinusSrcAlpha,
 };
 
 enum class BlendOp : std::uint8_t {
-    kAdd,
-    kSubtract,
+    Add,
+    Subtract,
 };
 
 struct ColorBlendDesc {
     bool enabled{false};
-    BlendFactor src_color{BlendFactor::kOne};
-    BlendFactor dst_color{BlendFactor::kZero};
-    BlendOp color_op{BlendOp::kAdd};
-    BlendFactor src_alpha{BlendFactor::kOne};
-    BlendFactor dst_alpha{BlendFactor::kZero};
-    BlendOp alpha_op{BlendOp::kAdd};
+    BlendFactor src_color{BlendFactor::One};
+    BlendFactor dst_color{BlendFactor::Zero};
+    BlendOp color_op{BlendOp::Add};
+    BlendFactor src_alpha{BlendFactor::One};
+    BlendFactor dst_alpha{BlendFactor::Zero};
+    BlendOp alpha_op{BlendOp::Add};
+};
+
+enum class RenderTargetFormat : std::uint8_t {
+    Rgba8Unorm,
+    Bgra8Unorm,
+    Rgba16Float,
+};
+
+struct ColorAttachmentDesc {
+    RenderTargetFormat format{RenderTargetFormat::Rgba8Unorm};
+    ColorBlendDesc blend{};
 };
 
 enum class CompareOp : std::uint8_t {
-    kNever,
-    kLess,
-    kEqual,
-    kLessOrEqual,
-    kGreater,
-    kNotEqual,
-    kGreaterOrEqual,
-    kAlways,
+    Never,
+    Less,
+    Equal,
+    LessOrEqual,
+    Greater,
+    NotEqual,
+    GreaterOrEqual,
+    Always,
 };
 
 struct DepthStencilDesc {
     bool depth_test_enabled{true};
     bool depth_write_enabled{true};
-    CompareOp depth_compare{CompareOp::kLessOrEqual};
+    CompareOp depth_compare{CompareOp::LessOrEqual};
     bool stencil_test_enabled{false};
 };
 
 struct RasterizationDesc {
-    PolygonMode polygon_mode{PolygonMode::kFill};
-    CullMode cull_mode{CullMode::kBack};
-    FrontFace front_face{FrontFace::kCounterClockwise};
+    PolygonMode polygon_mode{PolygonMode::Fill};
+    CullMode cull_mode{CullMode::Back};
+    FrontFace front_face{FrontFace::CounterClockwise};
     bool depth_clamp_enabled{false};
 };
 
@@ -127,16 +138,25 @@ struct GraphicsPipelineDesc {
     std::string label{};
     PipelineLayoutDesc layout{};
     std::vector<ShaderStageDesc> shader_stages{};
-    PrimitiveTopology topology{PrimitiveTopology::kTriangleList};
+    PrimitiveTopology topology{PrimitiveTopology::TriangleList};
     RasterizationDesc rasterization{};
-    ColorBlendDesc blend{};
+    std::vector<ColorAttachmentDesc> color_attachments{};
     DepthStencilDesc depth_stencil{};
+    std::uint8_t sample_count{1};
 };
 
 struct ComputePipelineDesc {
     std::string label{};
     PipelineLayoutDesc layout{};
-    ShaderStageDesc stage{};
+    ShaderStageDesc stage{.stage = ShaderStage::Compute};
+};
+
+struct DeviceCaps {
+    bool supports_compute{true};
+    bool supports_wireframe{false};
+    bool supports_depth_clamp{false};
+    std::uint8_t max_color_attachments{4};
+    std::uint8_t max_sample_count{1};
 };
 
 }  // namespace vme::engine::gfx::pipeline

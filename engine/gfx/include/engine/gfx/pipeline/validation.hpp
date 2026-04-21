@@ -7,7 +7,7 @@
 
 #pragma once
 
-#include <algorithm>
+#include <cstdint>
 #include <string>
 
 #include "engine/gfx/pipeline/pipeline_desc.hpp"
@@ -15,35 +15,51 @@
 namespace vme::engine::gfx::pipeline {
 
 enum class PipelineErrorCode : std::uint16_t {
-    kOk = 0,
-    kInvalidArgument,
-    kInvalidState,
-    kCapabilityNotSupported,
+    Ok = 0,
+    InvalidArgument,
+    InvalidState,
+    CapabilityNotSupported,
 };
 
 struct PipelineError {
-    PipelineErrorCode code{PipelineErrorCode::kOk};
+    PipelineErrorCode code{PipelineErrorCode::Ok};
     std::string message{};
 
-    [[nodiscard]] bool ok() const noexcept { return code == PipelineErrorCode::kOk; }
+    [[nodiscard]] bool ok() const noexcept { return code == PipelineErrorCode::Ok; }
 
     static PipelineError ok_result() noexcept { return {}; }
+};
+
+struct CreateGraphicsPipelineResult {
+    std::uint64_t pipeline_id{0};
+    bool cache_hit{false};
+    PipelineError error{};
+
+    [[nodiscard]] bool ok() const noexcept { return error.ok() && pipeline_id != 0; }
+};
+
+struct CreateComputePipelineResult {
+    std::uint64_t pipeline_id{0};
+    bool cache_hit{false};
+    PipelineError error{};
+
+    [[nodiscard]] bool ok() const noexcept { return error.ok() && pipeline_id != 0; }
 };
 
 [[nodiscard]] inline PipelineError validate_layout_desc(const PipelineLayoutDesc& desc) {
     for (const auto& slot : desc.resource_slots) {
         if (slot.visibility.empty()) {
-            return {PipelineErrorCode::kInvalidArgument,
+            return {PipelineErrorCode::InvalidArgument,
                     "resource slot visibility must declare at least one stage"};
         }
     }
 
     for (const auto& range : desc.push_constants) {
         if (range.size_bytes == 0) {
-            return {PipelineErrorCode::kInvalidArgument, "push constant size must be greater than zero"};
+            return {PipelineErrorCode::InvalidArgument, "push constant size must be greater than zero"};
         }
         if (range.visibility.empty()) {
-            return {PipelineErrorCode::kInvalidArgument,
+            return {PipelineErrorCode::InvalidArgument,
                     "push constant visibility must declare at least one stage"};
         }
     }
@@ -53,23 +69,58 @@ struct PipelineError {
 
 [[nodiscard]] inline PipelineError validate_shader_stage_desc(const ShaderStageDesc& stage_desc) {
     if (stage_desc.module_name.empty()) {
-        return {PipelineErrorCode::kInvalidArgument, "shader module_name cannot be empty"};
+        return {PipelineErrorCode::InvalidArgument, "shader module_name cannot be empty"};
     }
     if (stage_desc.entry_point.empty()) {
-        return {PipelineErrorCode::kInvalidArgument, "shader entry_point cannot be empty"};
+        return {PipelineErrorCode::InvalidArgument, "shader entry_point cannot be empty"};
     }
 
     return PipelineError::ok_result();
 }
 
-[[nodiscard]] inline PipelineError validate_graphics_pipeline_desc(const GraphicsPipelineDesc& desc) {
+[[nodiscard]] inline bool is_valid_sample_count(std::uint8_t sample_count) {
+    return sample_count == 1 || sample_count == 2 || sample_count == 4 || sample_count == 8;
+}
+
+[[nodiscard]] inline PipelineError validate_graphics_pipeline_desc(const GraphicsPipelineDesc& desc,
+                                                                   const DeviceCaps& caps) {
     const auto layout_error = validate_layout_desc(desc.layout);
     if (!layout_error.ok()) {
         return layout_error;
     }
 
     if (desc.shader_stages.empty()) {
-        return {PipelineErrorCode::kInvalidArgument, "graphics pipeline requires shader stages"};
+        return {PipelineErrorCode::InvalidArgument, "graphics pipeline requires shader stages"};
+    }
+
+    if (desc.color_attachments.empty()) {
+        return {PipelineErrorCode::InvalidArgument,
+                "graphics pipeline requires at least one color attachment"};
+    }
+
+    if (desc.color_attachments.size() > caps.max_color_attachments) {
+        return {PipelineErrorCode::CapabilityNotSupported,
+                "graphics pipeline color attachment count exceeds device capabilities"};
+    }
+
+    if (!is_valid_sample_count(desc.sample_count)) {
+        return {PipelineErrorCode::InvalidArgument,
+                "graphics pipeline sample_count must be one of {1,2,4,8}"};
+    }
+
+    if (desc.sample_count > caps.max_sample_count) {
+        return {PipelineErrorCode::CapabilityNotSupported,
+                "graphics pipeline sample_count exceeds device capabilities"};
+    }
+
+    if (desc.rasterization.polygon_mode == PolygonMode::Line && !caps.supports_wireframe) {
+        return {PipelineErrorCode::CapabilityNotSupported,
+                "wireframe polygon mode is not supported by this device"};
+    }
+
+    if (desc.rasterization.depth_clamp_enabled && !caps.supports_depth_clamp) {
+        return {PipelineErrorCode::CapabilityNotSupported,
+                "depth clamp is not supported by this device"};
     }
 
     auto has_vertex = false;
@@ -81,24 +132,34 @@ struct PipelineError {
             return stage_error;
         }
 
-        if (stage.stage == ShaderStage::kCompute) {
-            return {PipelineErrorCode::kInvalidArgument,
+        if (stage.stage == ShaderStage::Compute) {
+            return {PipelineErrorCode::InvalidArgument,
                     "graphics pipeline cannot declare compute shader stage"};
         }
 
-        has_vertex = has_vertex || stage.stage == ShaderStage::kVertex;
-        has_fragment = has_fragment || stage.stage == ShaderStage::kFragment;
+        has_vertex = has_vertex || stage.stage == ShaderStage::Vertex;
+        has_fragment = has_fragment || stage.stage == ShaderStage::Fragment;
     }
 
     if (!has_vertex || !has_fragment) {
-        return {PipelineErrorCode::kInvalidArgument,
+        return {PipelineErrorCode::InvalidArgument,
                 "graphics pipeline requires both vertex and fragment stages"};
     }
 
     return PipelineError::ok_result();
 }
 
-[[nodiscard]] inline PipelineError validate_compute_pipeline_desc(const ComputePipelineDesc& desc) {
+[[nodiscard]] inline PipelineError validate_graphics_pipeline_desc(const GraphicsPipelineDesc& desc) {
+    return validate_graphics_pipeline_desc(desc, DeviceCaps {});
+}
+
+[[nodiscard]] inline PipelineError validate_compute_pipeline_desc(const ComputePipelineDesc& desc,
+                                                                  const DeviceCaps& caps) {
+    if (!caps.supports_compute) {
+        return {PipelineErrorCode::CapabilityNotSupported,
+                "compute pipeline is not supported by this device"};
+    }
+
     const auto layout_error = validate_layout_desc(desc.layout);
     if (!layout_error.ok()) {
         return layout_error;
@@ -109,12 +170,16 @@ struct PipelineError {
         return stage_error;
     }
 
-    if (desc.stage.stage != ShaderStage::kCompute) {
-        return {PipelineErrorCode::kInvalidArgument,
+    if (desc.stage.stage != ShaderStage::Compute) {
+        return {PipelineErrorCode::InvalidArgument,
                 "compute pipeline requires compute shader stage"};
     }
 
     return PipelineError::ok_result();
+}
+
+[[nodiscard]] inline PipelineError validate_compute_pipeline_desc(const ComputePipelineDesc& desc) {
+    return validate_compute_pipeline_desc(desc, DeviceCaps {});
 }
 
 }  // namespace vme::engine::gfx::pipeline

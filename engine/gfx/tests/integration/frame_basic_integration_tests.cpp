@@ -2,6 +2,7 @@
 
 #include "engine/gfx/commands/factory.hpp"
 #include "engine/gfx/contracts/factory.hpp"
+#include "engine/gfx/pipeline.hpp"
 
 namespace {
 
@@ -11,6 +12,12 @@ using vme::engine::gfx::contracts::QueueType;
 using vme::engine::gfx::contracts::SubmitInfo;
 using vme::engine::gfx::contracts::SwapchainDesc;
 using vme::engine::gfx::contracts::SwapchainErrorCode;
+using vme::engine::gfx::pipeline::ColorAttachmentDesc;
+using vme::engine::gfx::pipeline::GraphicsPipelineDesc;
+using vme::engine::gfx::pipeline::PipelineLayoutDesc;
+using vme::engine::gfx::pipeline::ResourceSlotDesc;
+using vme::engine::gfx::pipeline::ShaderStage;
+using vme::engine::gfx::pipeline::ShaderStageDesc;
 
 void test_instance_device_queue_swapchain_single_frame() {
     auto instance = vme::engine::gfx::contracts::create_gfx_instance_stub();
@@ -20,7 +27,7 @@ void test_instance_device_queue_swapchain_single_frame() {
     const auto device_result = instance->create_device(0);
     assert(device_result.ok());
 
-    const auto queue_result = device_result.device->create_queue(QueueType::kGraphics);
+    const auto queue_result = device_result.device->create_queue(QueueType::Graphics);
     assert(queue_result.ok());
 
     const auto swapchain_result =
@@ -58,10 +65,36 @@ void test_swapchain_rejects_invalid_recreate_and_wrong_present_order() {
     assert(wrong_present.code == SwapchainErrorCode::kInvalidState);
 }
 
+void test_device_pipeline_creation_uses_cache() {
+    auto device = vme::engine::gfx::contracts::create_gfx_device_stub();
+    assert(device);
+
+    GraphicsPipelineDesc desc{};
+    desc.label = "basic-pipeline";
+    desc.layout = PipelineLayoutDesc {
+        .resource_slots = {ResourceSlotDesc {.set = 0, .binding = 0, .visibility = {ShaderStage::Vertex}}},
+    };
+    desc.shader_stages = {
+        ShaderStageDesc {.stage = ShaderStage::Vertex, .entry_point = "main", .module_name = "vs_main"},
+        ShaderStageDesc {.stage = ShaderStage::Fragment, .entry_point = "main", .module_name = "fs_main"},
+    };
+    desc.color_attachments = {ColorAttachmentDesc {}};
+
+    const auto create_first = device->create_graphics_pipeline(desc);
+    assert(create_first.ok());
+    assert(!create_first.cache_hit);
+
+    const auto create_second = device->create_graphics_pipeline(desc);
+    assert(create_second.ok());
+    assert(create_second.cache_hit);
+    assert(create_first.pipeline_id == create_second.pipeline_id);
+}
+
 }  // namespace
 
 int main() {
     test_instance_device_queue_swapchain_single_frame();
     test_swapchain_rejects_invalid_recreate_and_wrong_present_order();
+    test_device_pipeline_creation_uses_cache();
     return 0;
 }

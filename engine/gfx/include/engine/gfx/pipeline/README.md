@@ -6,8 +6,9 @@ Contratos públicos para pipeline gráfica e compute.
 
 - `PipelineLayoutDesc`: define slots de recursos e push constants;
 - `ShaderStageDesc`: descreve estágios habilitados e entry points;
-- `GraphicsPipelineDesc`: consolida rasterização, blend, depth/stencil e topology;
-- `ComputePipelineDesc`: descreve estágio compute e layout associado.
+- `GraphicsPipelineDesc`: consolida rasterização, attachments de cor, depth/stencil e topology;
+- `ComputePipelineDesc`: descreve estágio compute e layout associado;
+- `DeviceCaps`: explicita capacidades opcionais do backend para validação antecipada.
 
 ## Decisões de design (e por quê)
 
@@ -22,9 +23,10 @@ Contratos públicos para pipeline gráfica e compute.
 
 - Construção previsível de pipelines, com contratos estáveis entre front-end de render e backends.
 - Menor custo de depuração, já que incompatibilidades aparecem na validação da descrição.
+- Integração direta com `IGfxDevice` para criação de pipeline com cache por descritor.
 
 ## Próximos passos do módulo
 
-- Adicionar descritores de formato de render target e multisampling para cobrir pipelines gráficas completas.
-- Introduzir estrutura explícita de capabilities (`DeviceCaps`) para validar opções opcionais por backend.
-- Expor integração do contrato de pipeline com `IGfxDevice` para criação de pipelines com cache de backend.
+- Adicionar contratos para depth attachment format separado e políticas de resolve para MSAA.
+- Modelar limites por estágio (ex.: max textures por shader stage) dentro de `DeviceCaps`.
+- Expor API de invalidação e métricas do cache de pipeline por backend.
