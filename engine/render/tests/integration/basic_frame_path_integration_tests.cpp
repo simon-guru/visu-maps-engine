@@ -19,7 +19,7 @@ void test_runs_basic_frame_path_with_gfx_stubs() {
     assert(device_result.ok());
 
     const auto queue_result =
-        device_result.device->create_queue(vme::engine::gfx::contracts::QueueType::kGraphics);
+        device_result.device->create_queue(vme::engine::gfx::contracts::QueueType::Graphics);
     assert(queue_result.ok());
 
     const auto swapchain_result =
@@ -46,7 +46,7 @@ void test_runs_scene_based_frame_from_tiles_cache_and_service_event_invalidation
     assert(device_result.ok());
 
     const auto queue_result =
-        device_result.device->create_queue(vme::engine::gfx::contracts::QueueType::kGraphics);
+        device_result.device->create_queue(vme::engine::gfx::contracts::QueueType::Graphics);
     assert(queue_result.ok());
 
     const auto swapchain_result =

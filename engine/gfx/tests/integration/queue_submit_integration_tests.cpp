@@ -207,7 +207,7 @@ void test_device_create_queue_enables_end_to_end_submit() {
     auto device = vme::engine::gfx::contracts::create_gfx_device_stub();
     assert(device);
 
-    const auto queue_result = device->create_queue(QueueType::kGraphics);
+    const auto queue_result = device->create_queue(QueueType::Graphics);
     assert(queue_result.ok());
 
     auto encoder = vme::engine::gfx::commands::create_command_encoder_stub();
