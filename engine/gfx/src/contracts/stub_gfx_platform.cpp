@@ -6,6 +6,9 @@
 */
 
 #include "engine/gfx/contracts/factory.hpp"
+#include "engine/gfx/resources/backend_translation.hpp"
+#include "engine/gfx/resources/validation.hpp"
+#include "../resources/stub_resources.hpp"
 
 #include <functional>
 #include <string>
@@ -96,6 +99,9 @@ private:
 class StubGfxDevice final : public IGfxDevice {
 public:
     CreateQueueResult create_queue(QueueType /*queue_type*/) override {
+        // Decisão:
+        // - no stub, todos os tipos de fila retornam a mesma implementação para manter
+        //   cobertura funcional sem multiplicar complexidade de testes.
         return {create_gfx_queue_stub(), QueueSubmitResult::ok_result()};
     }
 
@@ -108,6 +114,9 @@ public:
     }
 
     [[nodiscard]] const pipeline::DeviceCaps& device_caps() const noexcept override { return caps_; }
+    [[nodiscard]] const resources::ResourceCaps& resource_caps() const noexcept override {
+        return resource_caps_;
+    }
 
     pipeline::CreateGraphicsPipelineResult
     create_graphics_pipeline(const pipeline::GraphicsPipelineDesc& desc) override {
@@ -145,6 +154,82 @@ public:
         return {id, false, pipeline::PipelineError::ok_result()};
     }
 
+    resources::CreateBufferResult create_buffer(const resources::BufferDesc& desc) override {
+        // Decisão:
+        // - validamos contrato + caps antes da criação para falhar cedo e evitar estado inválido.
+        const auto validation = resources::validate_buffer_desc(desc, resource_caps_);
+        if (!validation.ok()) {
+            return {nullptr, validation};
+        }
+        const auto translated = resources::translate_buffer_desc(desc, backend_api_, resource_caps_);
+        if (!translated.ok()) {
+            return {nullptr, translated.error};
+        }
+
+        // Decisão:
+        // - materialização do stub é delegada ao módulo src/resources para manter separação
+        //   entre "contrato de device" e "objeto de recurso".
+        return {resources::stub::create_buffer(desc), resources::ResourceError::ok_result()};
+    }
+
+    resources::CreateTextureResult create_texture(const resources::TextureDesc& desc) override {
+        // Validação explícita protege contra combinações inválidas de dimensão/formato/uso.
+        const auto validation = resources::validate_texture_desc(desc, resource_caps_);
+        if (!validation.ok()) {
+            return {nullptr, validation};
+        }
+        const auto translated = resources::translate_texture_desc(desc, backend_api_, resource_caps_);
+        if (!translated.ok()) {
+            return {nullptr, translated.error};
+        }
+
+        return {resources::stub::create_texture(desc), resources::ResourceError::ok_result()};
+    }
+
+    resources::CreateSamplerResult create_sampler(const resources::SamplerDesc& desc) override {
+        // Sampler também passa por caps (ex.: anisotropia máxima por backend).
+        const auto validation = resources::validate_sampler_desc(desc, resource_caps_);
+        if (!validation.ok()) {
+            return {nullptr, validation};
+        }
+
+        return {resources::stub::create_sampler(desc), resources::ResourceError::ok_result()};
+    }
+
+    resources::CreateShaderModuleResult create_shader_module(
+        const resources::ShaderModuleDesc& desc) override {
+        // Aqui ainda não há validação por "caps" de linguagem/estágio por backend;
+        // mantemos apenas contrato mínimo (code/entry_point) para evolução incremental.
+        const auto validation = resources::validate_shader_module_desc(desc);
+        if (!validation.ok()) {
+            return {nullptr, validation};
+        }
+
+        return {resources::stub::create_shader_module(desc), resources::ResourceError::ok_result()};
+    }
+
+    resources::CreateResourceViewFromBufferResult create_resource_view(
+        const resources::ResourceViewDesc& desc, const resources::Buffer& buffer) override {
+        // Coerência view->recurso base é validada sempre pelo descritor da própria instância base.
+        const auto validation = resources::validate_resource_view_desc(desc, buffer.desc());
+        if (!validation.ok()) {
+            return {nullptr, validation};
+        }
+
+        return {resources::stub::create_resource_view(desc), resources::ResourceError::ok_result()};
+    }
+
+    resources::CreateResourceViewFromTextureResult create_resource_view(
+        const resources::ResourceViewDesc& desc, const resources::Texture& texture) override {
+        // Mesmo princípio para textura: view só nasce se range/formato forem coerentes com base.
+        const auto validation = resources::validate_resource_view_desc(desc, texture.desc());
+        if (!validation.ok()) {
+            return {nullptr, validation};
+        }
+
+        return {resources::stub::create_resource_view(desc), resources::ResourceError::ok_result()};
+    }
+
 private:
     pipeline::DeviceCaps caps_ {
         .supports_compute = true,
@@ -156,6 +241,20 @@ private:
     std::uint64_t next_pipeline_id_{1};
     std::unordered_map<std::size_t, std::uint64_t> graphics_pipeline_cache_{};
     std::unordered_map<std::size_t, std::uint64_t> compute_pipeline_cache_{};
+    resources::ResourceCaps resource_caps_ {
+        // Decisão:
+        // - caps do stub são conservadoras e estáveis para tornar cenários de teste reproduzíveis.
+        .max_buffer_size_bytes = 64ull * 1024ull * 1024ull,
+        .max_texture_dimension_1d = 8192,
+        .max_texture_dimension_2d = 4096,
+        .max_texture_dimension_3d = 1024,
+        .max_texture_array_layers = 1024,
+        .max_texture_mip_levels = 12,
+        .max_sampler_anisotropy = 8,
+        .supports_storage_r32_float = true,
+        .supports_storage_rgba16_float = false,
+    };
+    resources::BackendApi backend_api_{resources::BackendApi::WebGL};
 };
 
 class StubGfxInstance final : public IGfxInstance {

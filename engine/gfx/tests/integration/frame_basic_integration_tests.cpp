@@ -3,6 +3,7 @@
 #include "engine/gfx/commands/factory.hpp"
 #include "engine/gfx/contracts/factory.hpp"
 #include "engine/gfx/pipeline.hpp"
+#include "engine/gfx/resources.hpp"
 
 namespace {
 
@@ -18,6 +19,16 @@ using vme::engine::gfx::pipeline::PipelineLayoutDesc;
 using vme::engine::gfx::pipeline::ResourceSlotDesc;
 using vme::engine::gfx::pipeline::ShaderStage;
 using vme::engine::gfx::pipeline::ShaderStageDesc;
+using vme::engine::gfx::resources::BufferDesc;
+using vme::engine::gfx::resources::BufferUsage;
+using vme::engine::gfx::resources::ResourceErrorCode;
+using vme::engine::gfx::resources::ResourceViewDesc;
+using vme::engine::gfx::resources::ResourceViewType;
+using vme::engine::gfx::resources::SamplerDesc;
+using vme::engine::gfx::resources::TextureDesc;
+using vme::engine::gfx::resources::TextureDimension;
+using vme::engine::gfx::resources::TextureFormat;
+using vme::engine::gfx::resources::TextureUsage;
 
 void test_instance_device_queue_swapchain_single_frame() {
     auto instance = vme::engine::gfx::contracts::create_gfx_instance_stub();
@@ -90,11 +101,75 @@ void test_device_pipeline_creation_uses_cache() {
     assert(create_first.pipeline_id == create_second.pipeline_id);
 }
 
+void test_device_creates_resources_and_views_with_contract_validation() {
+    auto device = vme::engine::gfx::contracts::create_gfx_device_stub();
+    assert(device);
+
+    const auto buffer_result = device->create_buffer(
+        BufferDesc {.size_bytes = 256, .usage = BufferUsage::Storage | BufferUsage::CopyDst});
+    assert(buffer_result.ok());
+
+    const auto texture_result = device->create_texture(TextureDesc {.dimension = TextureDimension::D2,
+                                                                    .format = TextureFormat::Rgba8Unorm,
+                                                                    .usage = TextureUsage::Sampled,
+                                                                    .width = 512,
+                                                                    .height = 256,
+                                                                    .depth_or_layers = 4,
+                                                                    .mip_levels = 1,
+                                                                    .sample_count = 1});
+    assert(texture_result.ok());
+
+    const auto sampler_result = device->create_sampler(SamplerDesc {});
+    assert(sampler_result.ok());
+
+    vme::engine::gfx::resources::ShaderModuleDesc shader_desc{};
+    shader_desc.stage = vme::engine::gfx::resources::ShaderStage::Vertex;
+    shader_desc.code = {0x03, 0x02, 0x23, 0x07};
+    const auto shader_result = device->create_shader_module(shader_desc);
+    assert(shader_result.ok());
+
+    const auto buffer_view_result = device->create_resource_view(
+        ResourceViewDesc {.type = ResourceViewType::BufferStorage, .buffer_offset = 0, .buffer_size_bytes = 128},
+        *buffer_result.buffer);
+    assert(buffer_view_result.ok());
+
+    const auto texture_view_result = device->create_resource_view(
+        ResourceViewDesc {.type = ResourceViewType::Texture2DArray,
+                          .base_mip_level = 0,
+                          .mip_level_count = 1,
+                          .base_array_layer = 0,
+                          .array_layer_count = 2},
+        *texture_result.texture);
+    assert(texture_view_result.ok());
+}
+
+void test_device_resource_caps_reject_unsupported_limits() {
+    auto device = vme::engine::gfx::contracts::create_gfx_device_stub();
+    assert(device);
+
+    const auto too_large_buffer = device->create_buffer(
+        BufferDesc {.size_bytes = device->resource_caps().max_buffer_size_bytes + 1, .usage = BufferUsage::CopyDst});
+    assert(too_large_buffer.error.code == ResourceErrorCode::CapabilityNotSupported);
+
+    const auto unsupported_storage_texture =
+        device->create_texture(TextureDesc {.dimension = TextureDimension::D2,
+                                            .format = TextureFormat::Rgba16Float,
+                                            .usage = TextureUsage::Storage,
+                                            .width = 64,
+                                            .height = 64,
+                                            .depth_or_layers = 1,
+                                            .mip_levels = 1,
+                                            .sample_count = 1});
+    assert(unsupported_storage_texture.error.code == ResourceErrorCode::CapabilityNotSupported);
+}
+
 }  // namespace
 
 int main() {
     test_instance_device_queue_swapchain_single_frame();
     test_swapchain_rejects_invalid_recreate_and_wrong_present_order();
     test_device_pipeline_creation_uses_cache();
+    test_device_creates_resources_and_views_with_contract_validation();
+    test_device_resource_caps_reject_unsupported_limits();
     return 0;
 }
