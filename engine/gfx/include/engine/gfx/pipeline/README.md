@@ -22,3 +22,9 @@ Contratos públicos para pipeline gráfica e compute.
 
 - Construção previsível de pipelines, com contratos estáveis entre front-end de render e backends.
 - Menor custo de depuração, já que incompatibilidades aparecem na validação da descrição.
+
+## Próximos passos do módulo
+
+- Adicionar descritores de formato de render target e multisampling para cobrir pipelines gráficas completas.
+- Introduzir estrutura explícita de capabilities (`DeviceCaps`) para validar opções opcionais por backend.
+- Expor integração do contrato de pipeline com `IGfxDevice` para criação de pipelines com cache de backend.
