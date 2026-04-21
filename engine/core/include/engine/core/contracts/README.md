@@ -33,6 +33,10 @@ Este diretório concentra contratos transversais, por exemplo:
   - facade de compatibilidade de include path para consumidores externos.
 - `engine/core/contracts/i_observability_sink.hpp`
   - interface `IObservabilitySink` para exportação canônica de sinais (`log`, `trace`, `lifecycle`) sem backend específico.
+- `engine/core/contracts/i_lifecycle_observer.hpp`
+  - interface especializada `ILifecycleObserver` para consumo reativo de `EngineLifecycleEvent`.
+- `engine/core/contracts/lifecycle_observer_adapter.hpp`
+  - adapter `LifecycleObserverAdapter` que implementa `IObservabilitySink`, filtra envelopes e notifica observers de lifecycle.
 
 ## Regras normativas do contrato `IEngineLifecycle`
 
