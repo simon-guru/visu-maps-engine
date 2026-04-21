@@ -11,6 +11,8 @@
 // Decisão de design:
 // - manter include único simplifica adoção incremental pelos módulos consumidores.
 #include "engine/gfx/resources/factory.hpp"
+#include "engine/gfx/resources/backend_translation.hpp"
+#include "engine/gfx/resources/debug_lifecycle.hpp"
 #include "engine/gfx/resources/interfaces.hpp"
 #include "engine/gfx/resources/resource_common.hpp"
 #include "engine/gfx/resources/resource_desc.hpp"

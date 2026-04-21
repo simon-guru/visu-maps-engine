@@ -194,6 +194,29 @@ struct ResourceCaps {
     std::uint8_t max_sampler_anisotropy{16};
     bool supports_storage_r32_float{true};
     bool supports_storage_rgba16_float{false};
+    std::vector<TextureFormat> sampled_formats {
+        TextureFormat::R8Unorm,
+        TextureFormat::Rg8Unorm,
+        TextureFormat::Rgba8Unorm,
+        TextureFormat::Bgra8Unorm,
+        TextureFormat::Rgba16Float,
+        TextureFormat::R32Float,
+        TextureFormat::D24UnormS8,
+        TextureFormat::D32Float,
+    };
+    std::vector<TextureFormat> storage_formats {
+        TextureFormat::R8Unorm,
+        TextureFormat::Rg8Unorm,
+        TextureFormat::Rgba8Unorm,
+        TextureFormat::R32Float,
+    };
+    std::vector<TextureFormat> render_target_formats {
+        TextureFormat::Rgba8Unorm,
+        TextureFormat::Bgra8Unorm,
+        TextureFormat::Rgba16Float,
+        TextureFormat::D24UnormS8,
+        TextureFormat::D32Float,
+    };
 };
 
 enum class ResourceViewType : std::uint8_t {

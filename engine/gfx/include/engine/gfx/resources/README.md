@@ -35,6 +35,6 @@ Contratos públicos para recursos de GPU.
 
 ## Próximos passos
 
-- Implementar camada de tradução para backends reais (Vulkan/Metal/WebGL) preservando os contratos novos no `IGfxDevice`.
-- Adicionar rastreamento de ciclo de vida (debug labels + leak tracking opcional) para recursos no stub e backends reais.
-- Expandir matriz de formatos suportados por backend para cobrir capacidades finas (sampled/storage/render-target por formato).
+- Expandir `backend_translation` para mapeamento real de enums/flags nativas por backend (Vk*/MTL*/GL*), substituindo os códigos abstratos atuais.
+- Integrar rastreamento de ciclo de vida com telemetria/diagnóstico no runtime (ex.: relatório por frame e detector opcional de leaks ativos).
+- Enriquecer matriz de formatos por backend com granularidade por operação (sampled linear/filterable, storage atomics, render-target blendable).

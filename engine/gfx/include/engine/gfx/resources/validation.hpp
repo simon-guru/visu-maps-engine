@@ -8,6 +8,7 @@
 #pragma once
 
 #include <cstdint>
+#include <ranges>
 
 #include "engine/gfx/resources/resource_desc.hpp"
 
@@ -38,6 +39,11 @@ namespace vme::engine::gfx::resources {
     }
 
     return texture_format_supports_storage(format);
+}
+
+[[nodiscard]] inline bool format_list_contains(const std::vector<TextureFormat>& formats,
+                                               TextureFormat format) {
+    return std::ranges::find(formats, format) != formats.end();
 }
 
 [[nodiscard]] inline ResourceError validate_buffer_desc(const BufferDesc& desc) {
@@ -192,6 +198,24 @@ namespace vme::engine::gfx::resources {
         !texture_format_supported_for_storage_by_caps(desc.format, caps)) {
         return {ResourceErrorCode::CapabilityNotSupported,
                 "texture format is not supported for Storage usage by this backend"};
+    }
+
+    if (has_flag(desc.usage, TextureUsage::Sampled) &&
+        !format_list_contains(caps.sampled_formats, desc.format)) {
+        return {ResourceErrorCode::CapabilityNotSupported,
+                "texture format is not supported for Sampled usage by this backend"};
+    }
+
+    if (has_flag(desc.usage, TextureUsage::RenderTarget) &&
+        !format_list_contains(caps.render_target_formats, desc.format)) {
+        return {ResourceErrorCode::CapabilityNotSupported,
+                "texture format is not supported for RenderTarget usage by this backend"};
+    }
+
+    if (has_flag(desc.usage, TextureUsage::Storage) &&
+        !format_list_contains(caps.storage_formats, desc.format)) {
+        return {ResourceErrorCode::CapabilityNotSupported,
+                "texture format is not listed for Storage usage in backend format matrix"};
     }
 
     return ResourceError::ok_result();

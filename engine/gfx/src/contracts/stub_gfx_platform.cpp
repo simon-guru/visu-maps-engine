@@ -6,6 +6,7 @@
 */
 
 #include "engine/gfx/contracts/factory.hpp"
+#include "engine/gfx/resources/backend_translation.hpp"
 #include "engine/gfx/resources/validation.hpp"
 #include "../resources/stub_resources.hpp"
 
@@ -160,6 +161,10 @@ public:
         if (!validation.ok()) {
             return {nullptr, validation};
         }
+        const auto translated = resources::translate_buffer_desc(desc, backend_api_, resource_caps_);
+        if (!translated.ok()) {
+            return {nullptr, translated.error};
+        }
 
         // Decisão:
         // - materialização do stub é delegada ao módulo src/resources para manter separação
@@ -172,6 +177,10 @@ public:
         const auto validation = resources::validate_texture_desc(desc, resource_caps_);
         if (!validation.ok()) {
             return {nullptr, validation};
+        }
+        const auto translated = resources::translate_texture_desc(desc, backend_api_, resource_caps_);
+        if (!translated.ok()) {
+            return {nullptr, translated.error};
         }
 
         return {resources::stub::create_texture(desc), resources::ResourceError::ok_result()};
@@ -245,6 +254,7 @@ private:
         .supports_storage_r32_float = true,
         .supports_storage_rgba16_float = false,
     };
+    resources::BackendApi backend_api_{resources::BackendApi::WebGL};
 };
 
 class StubGfxInstance final : public IGfxInstance {
