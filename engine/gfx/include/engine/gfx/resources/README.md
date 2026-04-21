@@ -24,3 +24,17 @@ Contratos públicos para recursos de GPU.
 - compatibilidade entre formato/dimensão/uso;
 - alinhamento de buffer por tipo de uso;
 - coerência entre view e recurso base.
+
+## Arquivos públicos
+
+- `resource_common.hpp`: erros e utilitários para flags em bitmask;
+- `resource_desc.hpp`: descritores explícitos e enums de uso/formato;
+- `interfaces.hpp`: contratos abstratos (`Buffer`, `Texture`, `Sampler`, `ShaderModule`, `ResourceView`);
+- `factory.hpp`: resultados de criação com ownership explícito (`std::unique_ptr`);
+- `validation.hpp`: validações inline do contrato público.
+
+## Próximos passos
+
+- Implementar camada de tradução para backends reais (Vulkan/Metal/WebGL) preservando os contratos novos no `IGfxDevice`.
+- Adicionar rastreamento de ciclo de vida (debug labels + leak tracking opcional) para recursos no stub e backends reais.
+- Expandir matriz de formatos suportados por backend para cobrir capacidades finas (sampled/storage/render-target por formato).
