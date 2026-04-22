@@ -1,4 +1,3 @@
-# backends/vulkan/CMakeLists.txt
 find_package(Vulkan REQUIRED)
 
 add_library(vme_backend_vulkan STATIC
@@ -6,6 +5,8 @@ add_library(vme_backend_vulkan STATIC
     src/vulkan_gfx_device.cpp
     src/vulkan_gfx_queue.cpp
     src/vulkan_gfx_swapchain.cpp
+    src/vulkan_command_encoder.cpp
+    src/vulkan_resources.cpp
     src/vulkan_factory.cpp
 )
 
@@ -24,6 +25,4 @@ target_link_libraries(vme_backend_vulkan
 )
 
 target_compile_features(vme_backend_vulkan PUBLIC cxx_std_20)
-
-# Define um alias para facilitar o uso
-add_library(VME::Backend ALIAS vme_backend_vulkan)
+target_compile_definitions(vme_backend_vulkan PRIVATE VK_NO_PROTOTYPES)
