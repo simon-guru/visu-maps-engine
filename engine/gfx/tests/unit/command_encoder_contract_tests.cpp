@@ -20,8 +20,8 @@ void test_records_commands_and_finishes_immutably() {
     assert(encoder->copy(CopyBufferCommand {.size_bytes = 256}).ok());
     assert(encoder->dispatch(DispatchCommand {.group_count_x = 2, .group_count_y = 1, .group_count_z = 1}).ok());
     assert(encoder->draw(DrawCommand {.vertex_count = 3}).ok());
-    assert(encoder->barrier(BarrierCommand {.src_stage = PipelineStage::kTransfer,
-                                            .dst_stage = PipelineStage::kFragment})
+    assert(encoder->barrier(BarrierCommand {.src_stage = PipelineStage::Transfer,
+                                            .dst_stage = PipelineStage::Fragment})
                .ok());
 
     const auto finish_result = encoder->finish(CommandBufferDesc {.label = "frame-main"});
@@ -43,8 +43,8 @@ void test_rejects_invalid_arguments() {
     const auto draw_error = encoder->draw(DrawCommand {.vertex_count = 0});
     assert(draw_error.code == CommandErrorCode::InvalidArgument);
 
-    const auto barrier_error = encoder->barrier(BarrierCommand {.src_stage = PipelineStage::kCompute,
-                                                                .dst_stage = PipelineStage::kCompute});
+    const auto barrier_error = encoder->barrier(BarrierCommand {.src_stage = PipelineStage::Compute,
+                                                                .dst_stage = PipelineStage::Compute});
     assert(barrier_error.code == CommandErrorCode::InvalidArgument);
 }
 
