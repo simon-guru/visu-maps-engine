@@ -49,7 +49,7 @@ void test_submit_batch_preserves_order_and_signals() {
     assert(submit_first.ok());
 
     const auto blocked_submit = queue->submit(submit_b);
-    assert(blocked_submit.code == QueueSubmitErrorCode::kSyncUnresolved);
+    assert(blocked_submit.code == QueueSubmitErrorCode::SyncUnresolved);
 
     assert(queue->pending_submission_count() == 1);
     assert(queue->process_next_submission().ok());
@@ -79,7 +79,7 @@ void test_submit_batch_validates_all_entries_before_enqueue() {
     batch.submissions.push_back(SubmitInfo {.command_buffer = nullptr});
 
     const auto batch_result = queue->submit_batch(batch);
-    assert(batch_result.code == QueueSubmitErrorCode::kInvalidArgument);
+    assert(batch_result.code == QueueSubmitErrorCode::InvalidArgument);
     assert(queue->pending_submission_count() == 0);
 }
 
@@ -87,7 +87,7 @@ void test_process_next_submission_fails_when_queue_is_empty() {
     auto queue = vme::engine::gfx::contracts::create_gfx_queue_stub();
 
     const auto process_result = queue->process_next_submission();
-    assert(process_result.code == QueueSubmitErrorCode::kInvalidArgument);
+    assert(process_result.code == QueueSubmitErrorCode::InvalidArgument);
 }
 
 void test_single_submit_can_signal_multiple_timelines() {
@@ -129,7 +129,7 @@ void test_rejects_timeline_and_fence_regression() {
 
     auto queue = vme::engine::gfx::contracts::create_gfx_queue_stub();
     const auto submit_result = queue->submit(submit);
-    assert(submit_result.code == QueueSubmitErrorCode::kInvalidArgument);
+    assert(submit_result.code == QueueSubmitErrorCode::InvalidArgument);
 }
 
 void test_submit_batch_supports_chained_dependencies_within_batch() {

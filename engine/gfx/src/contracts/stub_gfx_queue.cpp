@@ -46,7 +46,7 @@ public:
 
     QueueSubmitResult process_next_submission() override {
         if (queue_.empty()) {
-            return {QueueSubmitErrorCode::kInvalidArgument, "queue has no pending submissions"};
+            return {QueueSubmitErrorCode::InvalidArgument, "queue has no pending submissions"};
         }
 
         const SubmitInfo submission = queue_.front();
@@ -78,12 +78,12 @@ private:
         std::unordered_map<QueueTimeline*, std::uint64_t>& timeline_projection,
         std::unordered_map<FenceState*, std::uint64_t>& fence_projection) {
         if (submit_info.command_buffer == nullptr) {
-            return {QueueSubmitErrorCode::kInvalidArgument, "submit requires a valid command buffer"};
+            return {QueueSubmitErrorCode::InvalidArgument, "submit requires a valid command buffer"};
         }
 
         for (const auto& wait : submit_info.waits) {
             if (wait.timeline == nullptr) {
-                return {QueueSubmitErrorCode::kInvalidArgument,
+                return {QueueSubmitErrorCode::InvalidArgument,
                         "submit wait timeline reference cannot be null"};
             }
 
@@ -92,14 +92,14 @@ private:
                 projection_it == timeline_projection.end() ? wait.timeline->value : projection_it->second;
 
             if (visible_value < wait.min_value) {
-                return {QueueSubmitErrorCode::kSyncUnresolved,
+                return {QueueSubmitErrorCode::SyncUnresolved,
                         "submit wait timeline dependency is not satisfied"};
             }
         }
 
         for (const auto& signal : submit_info.signals) {
             if (signal.timeline == nullptr) {
-                return {QueueSubmitErrorCode::kInvalidArgument,
+                return {QueueSubmitErrorCode::InvalidArgument,
                         "submit signal timeline reference cannot be null"};
             }
 
@@ -108,7 +108,7 @@ private:
                 projection_it == timeline_projection.end() ? signal.timeline->value : projection_it->second;
 
             if (signal.value < visible_value) {
-                return {QueueSubmitErrorCode::kInvalidArgument,
+                return {QueueSubmitErrorCode::InvalidArgument,
                         "submit signal timeline value cannot regress"};
             }
 
@@ -122,7 +122,7 @@ private:
                                          : projection_it->second;
 
             if (submit_info.fence_signal.value.value < visible_value) {
-                return {QueueSubmitErrorCode::kInvalidArgument,
+                return {QueueSubmitErrorCode::InvalidArgument,
                         "submit fence value cannot regress"};
             }
 

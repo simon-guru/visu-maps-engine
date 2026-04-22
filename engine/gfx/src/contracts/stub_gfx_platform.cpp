@@ -56,37 +56,37 @@ public:
 
     AcquireImageResult acquire_next_image() override {
         if (image_count_ == 0) {
-            return {SwapchainErrorCode::kInvalidState, 0};
+            return {SwapchainErrorCode::InvalidState, 0};
         }
         if (acquired_) {
-            return {SwapchainErrorCode::kInvalidState, 0};
+            return {SwapchainErrorCode::InvalidState, 0};
         }
 
         acquired_ = true;
         current_image_index_ = next_image_index_;
         next_image_index_ = (next_image_index_ + 1) % image_count_;
-        return {SwapchainErrorCode::kOk, current_image_index_};
+        return {SwapchainErrorCode::Ok, current_image_index_};
     }
 
     PresentResult present(std::uint32_t image_index) override {
         if (!acquired_ || image_index != current_image_index_) {
-            return {SwapchainErrorCode::kInvalidState};
+            return {SwapchainErrorCode::InvalidState};
         }
 
         acquired_ = false;
-        return {SwapchainErrorCode::kOk};
+        return {SwapchainErrorCode::Ok};
     }
 
     SwapchainErrorCode recreate(const SwapchainDesc& desc) override {
         if (desc.image_count < 2) {
-            return SwapchainErrorCode::kInvalidArgument;
+            return SwapchainErrorCode::InvalidArgument;
         }
 
         image_count_ = desc.image_count;
         next_image_index_ = 0;
         current_image_index_ = 0;
         acquired_ = false;
-        return SwapchainErrorCode::kOk;
+        return SwapchainErrorCode::Ok;
     }
 
 private:
@@ -107,10 +107,10 @@ public:
 
     CreateSwapchainResult create_swapchain(const SwapchainDesc& desc) override {
         if (desc.image_count < 2) {
-            return {nullptr, SwapchainErrorCode::kInvalidArgument};
+            return {nullptr, SwapchainErrorCode::InvalidArgument};
         }
 
-        return {std::make_unique<StubGfxSwapchain>(desc), SwapchainErrorCode::kOk};
+        return {std::make_unique<StubGfxSwapchain>(desc), SwapchainErrorCode::Ok};
     }
 
     [[nodiscard]] const pipeline::DeviceCaps& device_caps() const noexcept override { return caps_; }
@@ -275,7 +275,7 @@ public:
 
     CreateDeviceResult create_device(std::uint32_t adapter_index) override {
         if (adapter_index >= adapters_.size()) {
-            return {nullptr, {QueueSubmitErrorCode::kInvalidArgument, "adapter index out of range"}};
+            return {nullptr, {QueueSubmitErrorCode::InvalidArgument, "adapter index out of range"}};
         }
 
         return {std::make_unique<StubGfxDevice>(), QueueSubmitResult::ok_result()};

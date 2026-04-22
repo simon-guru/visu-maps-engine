@@ -24,3 +24,4 @@ Contratos públicos para gravação e materialização de comandos.
   - mantém comportamento determinístico entre backends.
 - **sem comandos “mágicos”**;
   - evita dependências implícitas difíceis de portar.
+  

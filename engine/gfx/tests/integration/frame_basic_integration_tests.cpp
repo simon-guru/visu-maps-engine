@@ -70,10 +70,10 @@ void test_swapchain_rejects_invalid_recreate_and_wrong_present_order() {
     assert(swapchain_result.ok());
 
     const auto invalid_recreate = swapchain_result.swapchain->recreate(SwapchainDesc {.image_count = 1});
-    assert(invalid_recreate == SwapchainErrorCode::kInvalidArgument);
+    assert(invalid_recreate == SwapchainErrorCode::InvalidArgument);
 
     const auto wrong_present = swapchain_result.swapchain->present(0);
-    assert(wrong_present.code == SwapchainErrorCode::kInvalidState);
+    assert(wrong_present.code == SwapchainErrorCode::InvalidState);
 }
 
 void test_device_pipeline_creation_uses_cache() {
