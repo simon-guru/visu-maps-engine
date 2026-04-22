@@ -30,11 +30,11 @@ class StubCommandEncoder final : public ICommandEncoder {
 public:
     CommandError copy(const CopyBufferCommand& command) override {
         if (!is_recording_) {
-            return {CommandErrorCode::kInvalidState, "encoder is already finished"};
+            return {CommandErrorCode::InvalidState, "encoder is already finished"};
         }
 
         if (command.size_bytes == 0) {
-            return {CommandErrorCode::kInvalidArgument, "copy size must be greater than zero"};
+            return {CommandErrorCode::InvalidArgument, "copy size must be greater than zero"};
         }
 
         ++recorded_commands_;
@@ -43,11 +43,11 @@ public:
 
     CommandError dispatch(const DispatchCommand& command) override {
         if (!is_recording_) {
-            return {CommandErrorCode::kInvalidState, "encoder is already finished"};
+            return {CommandErrorCode::InvalidState, "encoder is already finished"};
         }
 
         if (command.group_count_x == 0 || command.group_count_y == 0 || command.group_count_z == 0) {
-            return {CommandErrorCode::kInvalidArgument, "dispatch group count must be greater than zero"};
+            return {CommandErrorCode::InvalidArgument, "dispatch group count must be greater than zero"};
         }
 
         ++recorded_commands_;
@@ -56,11 +56,11 @@ public:
 
     CommandError draw(const DrawCommand& command) override {
         if (!is_recording_) {
-            return {CommandErrorCode::kInvalidState, "encoder is already finished"};
+            return {CommandErrorCode::InvalidState, "encoder is already finished"};
         }
 
         if (command.vertex_count == 0 || command.instance_count == 0) {
-            return {CommandErrorCode::kInvalidArgument, "draw counts must be greater than zero"};
+            return {CommandErrorCode::InvalidArgument, "draw counts must be greater than zero"};
         }
 
         ++recorded_commands_;
@@ -69,11 +69,11 @@ public:
 
     CommandError barrier(const BarrierCommand& command) override {
         if (!is_recording_) {
-            return {CommandErrorCode::kInvalidState, "encoder is already finished"};
+            return {CommandErrorCode::InvalidState, "encoder is already finished"};
         }
 
         if (command.src_stage == command.dst_stage) {
-            return {CommandErrorCode::kInvalidArgument, "barrier requires distinct src/dst stages"};
+            return {CommandErrorCode::InvalidArgument, "barrier requires distinct src/dst stages"};
         }
 
         ++recorded_commands_;
@@ -83,7 +83,7 @@ public:
     FinishCommandBufferResult finish(const CommandBufferDesc& desc) override {
         if (!is_recording_) {
             return {nullptr,
-                    {CommandErrorCode::kInvalidState, "encoder finish cannot be called twice"}};
+                    {CommandErrorCode::InvalidState, "encoder finish cannot be called twice"}};
         }
 
         is_recording_ = false;

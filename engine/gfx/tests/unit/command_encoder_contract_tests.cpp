@@ -34,18 +34,18 @@ void test_rejects_invalid_arguments() {
     auto encoder = vme::engine::gfx::commands::create_command_encoder_stub();
 
     const auto copy_error = encoder->copy(CopyBufferCommand {.size_bytes = 0});
-    assert(copy_error.code == CommandErrorCode::kInvalidArgument);
+    assert(copy_error.code == CommandErrorCode::InvalidArgument);
 
     const auto dispatch_error =
         encoder->dispatch(DispatchCommand {.group_count_x = 0, .group_count_y = 1, .group_count_z = 1});
-    assert(dispatch_error.code == CommandErrorCode::kInvalidArgument);
+    assert(dispatch_error.code == CommandErrorCode::InvalidArgument);
 
     const auto draw_error = encoder->draw(DrawCommand {.vertex_count = 0});
-    assert(draw_error.code == CommandErrorCode::kInvalidArgument);
+    assert(draw_error.code == CommandErrorCode::InvalidArgument);
 
     const auto barrier_error = encoder->barrier(BarrierCommand {.src_stage = PipelineStage::kCompute,
                                                                 .dst_stage = PipelineStage::kCompute});
-    assert(barrier_error.code == CommandErrorCode::kInvalidArgument);
+    assert(barrier_error.code == CommandErrorCode::InvalidArgument);
 }
 
 void test_rejects_recording_after_finish() {
@@ -55,11 +55,11 @@ void test_rejects_recording_after_finish() {
     assert(finish_result.ok());
 
     const auto draw_after_finish = encoder->draw(DrawCommand {.vertex_count = 3});
-    assert(draw_after_finish.code == CommandErrorCode::kInvalidState);
+    assert(draw_after_finish.code == CommandErrorCode::InvalidState);
 
     const auto second_finish = encoder->finish(CommandBufferDesc {.label = "twice"});
     assert(!second_finish.ok());
-    assert(second_finish.error.code == CommandErrorCode::kInvalidState);
+    assert(second_finish.error.code == CommandErrorCode::InvalidState);
 }
 
 }  // namespace

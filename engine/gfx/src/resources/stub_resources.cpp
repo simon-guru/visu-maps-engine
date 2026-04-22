@@ -1,7 +1,7 @@
 /*
 # Copyright (c) 2026. VISU LLC. All rights reserved.
 # Author: Simão A.Mayunga
-# Date: 21/04/2026
+# Date: 22/04/2026
 # This file is part of VISU LLC.
 */
 
@@ -12,7 +12,9 @@
 
 #include "engine/gfx/resources/debug_lifecycle.hpp"
 
-namespace vme::engine::gfx::resources::stub {
+// -----------------------------------------------------------------------------
+// Variáveis globais de rastreamento (acessíveis por todas as funções neste .cpp)
+// -----------------------------------------------------------------------------
 namespace {
 
 std::atomic<std::uint64_t> g_buffers_created{0};
@@ -26,9 +28,14 @@ std::atomic<std::uint64_t> g_shader_modules_destroyed{0};
 std::atomic<std::uint64_t> g_views_created{0};
 std::atomic<std::uint64_t> g_views_destroyed{0};
 
-// Decisão:
-// - objetos stub armazenam apenas o descritor original para manter comportamento previsível
-//   e totalmente determinístico em testes, sem simular alocação real de GPU.
+}  // namespace
+
+namespace vme::engine::gfx::resources::stub {
+namespace {
+
+// -----------------------------------------------------------------------------
+// Implementações stub de recursos
+// -----------------------------------------------------------------------------
 class StubBuffer final : public Buffer {
 public:
     explicit StubBuffer(BufferDesc desc) : desc_(std::move(desc)) { ++g_buffers_created; }
@@ -90,9 +97,9 @@ private:
 
 }  // namespace
 
-// Decisão:
-// - cada função de criação transfere ownership via std::unique_ptr para espelhar o
-//   contrato público esperado pelos backends reais.
+// -----------------------------------------------------------------------------
+// Funções de fábrica stub
+// -----------------------------------------------------------------------------
 std::unique_ptr<Buffer> create_buffer(BufferDesc desc) {
     return std::make_unique<StubBuffer>(std::move(desc));
 }
@@ -115,34 +122,37 @@ std::unique_ptr<ResourceView> create_resource_view(ResourceViewDesc desc) {
 
 }  // namespace vme::engine::gfx::resources::stub
 
+// -----------------------------------------------------------------------------
+// Funções de debug para rastreamento de ciclo de vida
+// -----------------------------------------------------------------------------
 namespace vme::engine::gfx::resources::debug {
 
 ResourceLifecycleStats lifecycle_stats() noexcept {
     return {
-        .buffers_created = g_buffers_created.load(),
-        .buffers_destroyed = g_buffers_destroyed.load(),
-        .textures_created = g_textures_created.load(),
-        .textures_destroyed = g_textures_destroyed.load(),
-        .samplers_created = g_samplers_created.load(),
-        .samplers_destroyed = g_samplers_destroyed.load(),
-        .shader_modules_created = g_shader_modules_created.load(),
+        .buffers_created          = g_buffers_created.load(),
+        .buffers_destroyed        = g_buffers_destroyed.load(),
+        .textures_created         = g_textures_created.load(),
+        .textures_destroyed       = g_textures_destroyed.load(),
+        .samplers_created         = g_samplers_created.load(),
+        .samplers_destroyed       = g_samplers_destroyed.load(),
+        .shader_modules_created   = g_shader_modules_created.load(),
         .shader_modules_destroyed = g_shader_modules_destroyed.load(),
-        .views_created = g_views_created.load(),
-        .views_destroyed = g_views_destroyed.load(),
+        .views_created            = g_views_created.load(),
+        .views_destroyed          = g_views_destroyed.load(),
     };
 }
 
 void reset_lifecycle_stats() noexcept {
-    g_buffers_created = 0;
-    g_buffers_destroyed = 0;
-    g_textures_created = 0;
-    g_textures_destroyed = 0;
-    g_samplers_created = 0;
-    g_samplers_destroyed = 0;
-    g_shader_modules_created = 0;
+    g_buffers_created          = 0;
+    g_buffers_destroyed        = 0;
+    g_textures_created         = 0;
+    g_textures_destroyed       = 0;
+    g_samplers_created         = 0;
+    g_samplers_destroyed       = 0;
+    g_shader_modules_created   = 0;
     g_shader_modules_destroyed = 0;
-    g_views_created = 0;
-    g_views_destroyed = 0;
+    g_views_created            = 0;
+    g_views_destroyed          = 0;
 }
 
 }  // namespace vme::engine::gfx::resources::debug
