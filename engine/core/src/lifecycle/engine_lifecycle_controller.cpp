@@ -29,30 +29,33 @@ using types::EngineState;
 using types::FrameContext;
 
 namespace {
-constexpr char kLifecycleModule[] = "engine.core.lifecycle";
+constexpr char LifecycleModule[] = "engine.core.lifecycle";
 }  // namespace
 
 EngineLifecycleController::EngineLifecycleController(
     contracts::IEngineLogger* logger, contracts::IEngineTracer* tracer) noexcept
     : logger_ {logger}, tracer_ {tracer} {}
 
-void EngineLifecycleController::set_logger(contracts::IEngineLogger* logger) noexcept {
-    std::scoped_lock lock {mutex_};
+void EngineLifecycleController::set_logger(contracts::IEngineLogger* logger) 
+noexcept {
+    std::scoped_lock lock {state_mutex_};
     logger_ = logger;
 }
 
-void EngineLifecycleController::set_tracer(contracts::IEngineTracer* tracer) noexcept {
-    std::scoped_lock lock {mutex_};
+void EngineLifecycleController::set_tracer(contracts::IEngineTracer* tracer) 
+noexcept {
+    std::scoped_lock lock {state_mutex_};
     tracer_ = tracer;
 }
 
 
-void EngineLifecycleController::add_observability_sink(contracts::IObservabilitySink* sink) noexcept {
+void EngineLifecycleController::add_observability_sink(contracts::IObservabilitySink* sink) 
+noexcept {
     if (sink == nullptr || sink == &noop_sink_) {
         return;
     }
 
-    std::scoped_lock lock {mutex_};
+    std::scoped_lock lock {sinks_mutex_};
     if (std::find(observability_sinks_.begin(), observability_sinks_.end(), sink)
         != observability_sinks_.end()) {
         return;
@@ -65,8 +68,9 @@ void EngineLifecycleController::add_observability_sink(contracts::IObservability
     observability_sinks_.push_back(sink);
 }
 
-void EngineLifecycleController::remove_observability_sink(contracts::IObservabilitySink* sink) noexcept {
-    std::scoped_lock lock {mutex_};
+void EngineLifecycleController::remove_observability_sink(contracts::IObservabilitySink* sink) 
+noexcept {
+    std::scoped_lock lock {sinks_mutex_};
     const auto new_end = std::remove(observability_sinks_.begin(), observability_sinks_.end(), sink);
     observability_sinks_.erase(new_end, observability_sinks_.end());
 
@@ -76,7 +80,7 @@ void EngineLifecycleController::remove_observability_sink(contracts::IObservabil
 }
 
 void EngineLifecycleController::clear_observability_sinks() noexcept {
-    std::scoped_lock lock {mutex_};
+    std::scoped_lock lock {sinks_mutex_};
     observability_sinks_.clear();
     observability_sinks_.push_back(&noop_sink_);
 }
@@ -84,7 +88,7 @@ void EngineLifecycleController::clear_observability_sinks() noexcept {
 // Realiza bootstrap inicial.
 EngineError EngineLifecycleController::initialize(const EngineConfig& config) {
     // Lock de escopo para garantir atomicidade das transições.
-    std::scoped_lock lock {mutex_};
+    std::scoped_lock lock {state_mutex_};
 
     const EngineState state_before = state_;
     emit_lifecycle_event(EngineLifecycleEvent {
@@ -147,7 +151,7 @@ EngineError EngineLifecycleController::initialize(const EngineConfig& config) {
 // Processa um frame.
 EngineError EngineLifecycleController::tick(const FrameContext& frame_context) {
     // Lock para garantir leitura/escrita consistente de estado e contexto interno.
-    std::scoped_lock lock {mutex_};
+    std::scoped_lock lock {state_mutex_};
 
     const EngineState state_before = state_;
     emit_lifecycle_event(EngineLifecycleEvent {
@@ -213,7 +217,7 @@ EngineError EngineLifecycleController::tick(const FrameContext& frame_context) {
 // Pausa execução sem desligar runtime.
 EngineError EngineLifecycleController::pause() {
     // Lock protege transição de estado.
-    std::scoped_lock lock {mutex_};
+    std::scoped_lock lock {state_mutex_};
 
     const EngineState state_before = state_;
     emit_lifecycle_event(EngineLifecycleEvent {
@@ -252,48 +256,51 @@ EngineError EngineLifecycleController::pause() {
 
 // Retoma execução após pausa.
 EngineError EngineLifecycleController::resume() {
-    // Lock protege transição de estado.
-    std::scoped_lock lock {mutex_};
+    {
+        // Lock protege transição de estado.
+        std::scoped_lock lock {state_mutex_};
 
-    const EngineState state_before = state_;
-    emit_lifecycle_event(EngineLifecycleEvent {
-        .operation = EngineLifecycleOperation::Resume,
-        .phase = EngineLifecycleEventPhase::Attempt,
-        .state_before = state_before,
-        .state_after = state_before,
-    });
-
-    // Resume só é válido a partir de paused.
-    if (state_ != EngineState::Paused) {
-        const auto error = invalid_transition_error(
-            types::lifecycle_error::LifecycleResumeInvalidState,
-            types::lifecycle_error::LifecycleResumeInvalidStateMessage);
+        const EngineState state_before = state_;
         emit_lifecycle_event(EngineLifecycleEvent {
             .operation = EngineLifecycleOperation::Resume,
-            .phase = EngineLifecycleEventPhase::Failure,
+            .phase = EngineLifecycleEventPhase::Attempt,
+            .state_before = state_before,
+            .state_after = state_before,
+        });
+
+        // Resume só é válido a partir de paused.
+        if (state_ != EngineState::Paused) {
+            const auto error = invalid_transition_error(
+                types::lifecycle_error::LifecycleResumeInvalidState,
+                types::lifecycle_error::LifecycleResumeInvalidStateMessage);
+            
+                emit_lifecycle_event(EngineLifecycleEvent {
+                    .operation = EngineLifecycleOperation::Resume,
+                    .phase = EngineLifecycleEventPhase::Failure,
+                    .state_before = state_before,
+                    .state_after = state_,
+                    .error_code = error.code,
+                    .error_message = error.message,
+            });
+            return error;
+        }
+
+        // Aplica transição paused -> running.
+        state_ = EngineState::Running;
+        emit_lifecycle_event(EngineLifecycleEvent {
+            .operation = EngineLifecycleOperation::Resume,
+            .phase = EngineLifecycleEventPhase::Success,
             .state_before = state_before,
             .state_after = state_,
-            .error_code = error.code,
-            .error_message = error.message,
         });
-        return error;
     }
-
-    // Aplica transição paused -> running.
-    state_ = EngineState::Running;
-    emit_lifecycle_event(EngineLifecycleEvent {
-        .operation = EngineLifecycleOperation::Resume,
-        .phase = EngineLifecycleEventPhase::Success,
-        .state_before = state_before,
-        .state_after = state_,
-    });
     return EngineError {};
 }
 
 // Encerra runtime de forma ordenada.
 EngineError EngineLifecycleController::shutdown() {
     // Lock para serializar mudança de estado durante encerramento.
-    std::scoped_lock lock {mutex_};
+    std::scoped_lock lock {state_mutex_};
 
     const EngineState state_before = state_;
     emit_lifecycle_event(EngineLifecycleEvent {
@@ -325,9 +332,12 @@ EngineError EngineLifecycleController::shutdown() {
         }
         // Não há shutdown válido sem bootstrap prévio.
         case EngineState::Uninitialized: {
+            // Erro de transição inválida: shutdown sem inicialização prévia.
             const auto error = invalid_transition_error(
                 types::lifecycle_error::LifecycleShutdownInvalidState,
                 types::lifecycle_error::LifecycleShutdownInvalidStateMessage);
+
+            // Falha de shutdown é crítica, mas tratável, pois o runtime pode permanecer em estado consistente e permitir tentativas subsequentes de shutdown ou outras operações de lifecycle.
             emit_lifecycle_event(EngineLifecycleEvent {
                 .operation = EngineLifecycleOperation::Shutdown,
                 .phase = EngineLifecycleEventPhase::Failure,
@@ -336,6 +346,7 @@ EngineError EngineLifecycleController::shutdown() {
                 .error_code = error.code,
                 .error_message = error.message,
             });
+            // Retorna erro sem alterar estado, permitindo que o caller decida como proceder (ex: tentar shutdown novamente, ou realizar initialize antes de shutdown).
             return error;
         }
     }
@@ -343,6 +354,8 @@ EngineError EngineLifecycleController::shutdown() {
     // Finaliza parada.
     state_ = EngineState::Stopped;
     const auto result = EngineError {};
+
+    // Emite evento de lifecycle para sinalizar conclusão do shutdown, mesmo em caso de idempotência, garantindo que os observers sejam notificados consistentemente sobre o estado final do lifecycle.
     emit_lifecycle_event(EngineLifecycleEvent {
         .operation = EngineLifecycleOperation::Shutdown,
         .phase = EngineLifecycleEventPhase::Success,
@@ -353,14 +366,16 @@ EngineError EngineLifecycleController::shutdown() {
 }
 
 // Retorna estado atual de forma thread-safe.
-EngineState EngineLifecycleController::state() const noexcept {
-    std::scoped_lock lock {mutex_};
+EngineState EngineLifecycleController::state() 
+const noexcept {
+    std::scoped_lock lock {state_mutex_};
     return state_;
 }
 
 // Retorna configuração efetiva carregada no bootstrap.
-const EngineConfig& EngineLifecycleController::config() const noexcept {
-    std::scoped_lock lock {mutex_};
+const EngineConfig& EngineLifecycleController::config() 
+const noexcept {
+    std::scoped_lock lock {state_mutex_};
     return config_;
 }
 
@@ -376,27 +391,32 @@ EngineError EngineLifecycleController::invalid_transition_error(
     };
 }
 
-void EngineLifecycleController::export_observability_signal(
-    types::EngineObservabilitySignal signal) const {
+void EngineLifecycleController::export_observability_signal(types::EngineObservabilitySignal signal) 
+const {
     const auto emitted_at_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
         FrameContext::Clock::now().time_since_epoch());
 
     const auto envelope = types::EngineObservabilityEnvelope {
         .emitted_at_ns = emitted_at_ns.count(),
-        .source = kLifecycleModule,
+        .source = LifecycleModule,
         .signal = std::move(signal),
     };
 
-    for (auto* sink : observability_sinks_) {
-        if (sink == nullptr) {
-            continue;
-        }
-
-        sink->export_signal(envelope);
+    std::vector<contracts::IObservabilitySink*> sinks_copy;
+    {
+        std::scoped_lock lock {sinks_mutex_};
+        sinks_copy = observability_sinks_;
+    }
+    // Itera sobre os sinks de forma thread-safe, garantindo que a emissão do sinal de observabilidade seja consistente e livre de condições de corrida, mesmo quando os sinks podem ser adicionados ou removidos dinamicamente por outros threads. O uso de uma cópia local da lista de sinks permite que a emissão do sinal ocorra sem manter o lock durante a chamada aos sinks, evitando bloqueios prolongados e permitindo que os sinks sejam processados de forma independente.
+    for (auto* sink : sinks_copy) {
+        if (sink)
+            sink->export_signal(envelope);
     }
 }
 
-void EngineLifecycleController::emit_lifecycle_event(const EngineLifecycleEvent& event) const {
+void EngineLifecycleController::emit_lifecycle_event(const EngineLifecycleEvent& event) 
+const {
+    // Emite evento estruturado de lifecycle no pipeline de observabilidade. No-op para logging quando logger_ == nullptr e para export quando não houver sink customizado.
     export_observability_signal(event);
 
     if (logger_ == nullptr) {
@@ -410,8 +430,9 @@ void EngineLifecycleController::emit_lifecycle_event(const EngineLifecycleEvent&
         ? event.error_message
         : "Lifecycle operation event emitted.";
 
+    // Construção de payload de log estruturado para o evento de lifecycle, incluindo campos detalhados para permitir análise e correlação avançada dos eventos de lifecycle nos sistemas de logging, facilitando a identificação de padrões, falhas e comportamento do lifecycle ao longo do tempo.
     auto payload = types::EngineLogPayload {
-        .module = kLifecycleModule,
+        .module = LifecycleModule,
         .severity = event.phase == EngineLifecycleEventPhase::Failure
             ? EngineErrorSeverity::Recoverable
             : EngineErrorSeverity::Info,
@@ -432,29 +453,29 @@ void EngineLifecycleController::emit_lifecycle_event(const EngineLifecycleEvent&
             types::EngineLogField {"error_message", event.error_message},
         },
     };
-
+    // Emite log estruturado para o evento de lifecycle, permitindo que os consumidores de log possam filtrar e analisar os eventos de lifecycle com base em seus campos estruturados, facilitando a correlação com os sinais de observabilidade exportados e proporcionando uma visão unificada do comportamento do lifecycle tanto em logs quanto em métricas/traces.
     logger_->log(payload);
 }
 
 
-void EngineLifecycleController::trace_frame_event(const FrameContext& frame_context) const {
+void EngineLifecycleController::trace_frame_event(const FrameContext& frame_context) 
+const {
     // Caminho desabilitado: retorna antes de qualquer custo de normalização/alocação.
     if (!config_.enable_frame_trace) {
         return;
     }
 
     // Formato estável para exportação: nanossegundos inteiros assinados.
-    const auto delta_time_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
-        frame_context.delta_time);
-    const auto timestamp_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
-        frame_context.timestamp.time_since_epoch());
-
+    const auto delta_time_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(frame_context.delta_time);
+    // Timestamp de referência para o frame atual, expresso como nanossegundos desde epoch, para garantir um formato consistente e fácil de consumir em sinks de observabilidade, facilitando correlação temporal e análise de desempenho.
+    const auto timestamp_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(frame_context.timestamp.time_since_epoch());
+    // Construção de evento de trace de frame com os dados normalizados.
     const auto event = types::FrameTraceEvent {
         .frame_index = frame_context.frame_index,
         .delta_time = delta_time_ns.count(),
         .timestamp = timestamp_ns.count(),
     };
-
+    // Emite evento estruturado de lifecycle no pipeline de observabilidade. No-op para logging quando logger_ == nullptr e para export quando não houver sink customizado.
     export_observability_signal(event);
 
     if (tracer_ != nullptr) {

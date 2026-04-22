@@ -90,7 +90,7 @@ private:
     void trace_frame_event(const types::FrameContext& frame_context) const;
 
     // Mutex que protege leitura/escrita de estado interno e registro de observabilidade.
-    mutable std::mutex mutex_ {};
+    mutable std::mutex state_mutex_ {}, sinks_mutex_ {};
     // Dependência opcional de logging (não proprietária).
     contracts::IEngineLogger* logger_ {nullptr};
     // Dependência opcional de tracing de frame (não proprietária).
@@ -98,8 +98,11 @@ private:
     // Configuração efetiva após initialize.
     types::EngineConfig config_ {};
     // Fallback no-op para ambiente sem observabilidade.
+    // O uso de um sink no-op garante que o controller possa emitir sinais de observabilidade sem a necessidade de verificar a presença de sinks registrados, simplificando a lógica de emissão e garantindo que os sinais sejam descartados silenciosamente quando não houver sinks personalizados, evitando a necessidade de verificações adicionais ou tratamento especial para o caso sem sinks.
     contracts::NoopObservabilitySink noop_sink_ {};
     // Coleção de sinks de exportação (não-proprietária).
+    // O uso de ponteiros crus é intencional para evitar acoplamento de propriedade e facilitar integração com sinks gerenciados externamente. O controller não é responsável por gerenciar a memória dos sinks; o caller deve garantir que os sinks sejam destruídos apenas após a remoção ou que permaneçam válidos enquanto registrados. O método add_observability_sink deve garantir que os sinks sejam registrados corretamente, permitindo múltiplos sinks simultâneos, e que a lista de sinks seja protegida contra condições de corrida usando mutexes para garantir a thread-safety.
+    // O método remove_observability_sink deve garantir que os sinks sejam removidos corretamente, garantindo que eles não recebam mais sinais futuros, e que a lista de sinks seja protegida contra condições de corrida usando mutexes para garantir a thread-safety. O método clear_observability_sinks deve garantir que todos os sinks sejam removidos corretamente, garantindo que eles não recebam mais sinais futuros, e que a lista de sinks seja protegida contra condições de corrida usando mutexes para garantir a thread-safety.
     std::vector<contracts::IObservabilitySink*> observability_sinks_ {&noop_sink_};
     // Estado da máquina de lifecycle.
     types::EngineState state_ {types::EngineState::Uninitialized};

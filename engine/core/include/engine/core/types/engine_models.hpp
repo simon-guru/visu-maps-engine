@@ -70,14 +70,29 @@ struct EngineError final {
 
 /**
  * @brief Configuração mínima do runtime.
+ * A estrutura EngineConfig representa a configuração mínima necessária para inicializar o runtime da engine. Ela inclui campos essenciais como o nome da aplicação host, a meta de FPS para o loop principal, e flags para ativar validações extras e tracing por frame. A definição clara desta estrutura é crucial para garantir que o processo de bootstrap da engine seja configurado corretamente, evitando erros comuns de configuração e garantindo que a engine possa operar de forma eficiente e estável desde o início.
+ * A validação local do campo target_fps deve garantir que ele seja maior que zero para
+ * evitar configurações inviáveis, e a escolha de um uint32_t facilita essa validação, pois não permite valores negativos. A definição clara desta estrutura é crucial para garantir que o processo de bootstrap da engine seja configurado corretamente, evitando erros comuns de configuração e garantindo que a engine possa operar de forma eficiente e estável desde o início.
+ * @see EngineState
+ * @see EngineErrorSeverity
+ * @see EngineError
+ * @see FrameContext
+ * @see IObservabilitySink
+ * @see EngineObservabilityEnvelope
+ * @see EngineObservabilitySignal
  */
 struct EngineConfig final {
     // Identificador amigável da aplicação host.
     std::string app_name {"visu-maps-engine"};
+
     // Meta de FPS para loop principal.
+    // A escolha de um uint32_t é adequada para representar a meta de FPS, pois permite valores suficientemente grandes para cobrir uma ampla gama de casos de uso, desde aplicações simples com baixa taxa de quadros até jogos e simulações mais complexas que podem exigir taxas de quadros mais altas. Além disso, o uso de um tipo inteiro sem sinal (uint32_t) garante que a meta de FPS seja sempre um valor positivo, o que é lógico para este contexto.
+    // A validação local do campo target_fps deve garantir que ele seja maior que zero para evitar configurações inviáveis, e a escolha de um uint32_t facilita essa validação, pois não permite valores negativos.
     std::uint32_t target_fps {60U};
+
     // Ativa validações extras para modo desenvolvimento.
     bool enable_validation {true};
+
     // Ativa tracing por frame para observabilidade.
     bool enable_frame_trace {false};
 

@@ -16,8 +16,17 @@ namespace vme::engine::core::contracts {
  */
 class NoopObservabilitySink final : public IObservabilitySink {
 public:
+    /*
+        * @brief Construtor padrão.
+    */
     ~NoopObservabilitySink() override = default;
 
+    /*
+        * @brief Implementação no-op que ignora todos os sinais exportados.
+        * O método é thread-safe e pode ser chamado a qualquer momento, mas não realiza nenhuma operação.
+        * @see IObservabilitySink
+        * @see EngineObservabilityEnvelope
+    */
     void export_signal(const types::EngineObservabilityEnvelope&) override {}
 };
 

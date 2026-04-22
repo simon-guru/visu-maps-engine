@@ -30,6 +30,12 @@ public:
 
     /**
      * @brief Recebe evento de lifecycle já filtrado e tipado.
+     * O método é chamado pelo adapter de observabilidade quando um envelope contendo `EngineLifecycleEvent` é exportado.
+     * O caller deve garantir que a implementação deste método seja thread-safe, pois pode ser chamada de múltiplas threads dependendo do contexto de exportação dos envelopes.
+     * @param event Evento de lifecycle contendo informações sobre a operação, fase, estados e erros relacionados à transição de lifecycle.
+      * @see EngineLifecycleEvent
+      * @see LifecycleObserverAdapter
+      * @see IObservabilitySink
      */
     virtual void on_lifecycle_event(const types::EngineLifecycleEvent& event) = 0;
 };

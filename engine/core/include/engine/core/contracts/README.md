@@ -38,6 +38,23 @@ Este diretório concentra contratos transversais, por exemplo:
 - `engine/core/contracts/lifecycle_observer_adapter.hpp`
   - adapter `LifecycleObserverAdapter` que implementa `IObservabilitySink`, filtra envelopes e notifica observers de lifecycle.
 
+## Declarações públicas desta etapa
+
+- `i_engine_lifecycle.hpp`
+- `i_observability_sink.hpp`
+- `i_lifecycle_observer.hpp` (NOVO)
+- `lifecycle_observer_adapter.hpp` (NOVO)
+- ...
+
+### `ILifecycleObserver`
+Interface reativa simplificada. Recebe eventos de lifecycle já tipados via `on_lifecycle_event`.
+
+### `LifecycleObserverAdapter`
+Sink de observabilidade que filtra sinais de lifecycle e os encaminha para uma lista de `ILifecycleObserver`. Permite que módulos reajam a transições de estado sem que o core precise conhecê-los.
+
+
+
+
 ## Regras normativas do contrato `IEngineLifecycle`
 
 As regras abaixo **espelham exatamente** as seções dos comentários do header.

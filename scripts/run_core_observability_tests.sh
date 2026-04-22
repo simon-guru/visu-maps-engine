@@ -10,13 +10,19 @@ mkdir -p "${OUT_DIR}"
 CXX="${CXX:-g++}"
 CXXFLAGS=(
   -std=c++20
-  -fpermissive
   -I"${ROOT_DIR}/engine/core/include"
 )
 CORE_SOURCES=(
   "${ROOT_DIR}/engine/core/src/types_engine_models.cpp"
   "${ROOT_DIR}/engine/core/src/lifecycle/engine_lifecycle_controller.cpp"
+  "${ROOT_DIR}/engine/core/src/contracts/lifecycle_observer_adapter.cpp"
 )
+
+# Verifica se o compilador existe
+if ! command -v "${CXX}" &> /dev/null; then
+    echo "Error: Compiler '${CXX}' not found." >&2
+    exit 1
+fi
 
 echo "[1/4] Building and running unit tests..."
 "${CXX}" "${CXXFLAGS[@]}" \

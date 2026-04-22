@@ -1,5 +1,6 @@
 add_library(engine_core STATIC
     src/types_engine_models.cpp
+    src/contracts/lifecycle_observer_adapter.cpp
     src/lifecycle/engine_lifecycle_controller.cpp
 )
 

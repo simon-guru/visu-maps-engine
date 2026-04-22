@@ -14,6 +14,16 @@ Camada base do `visu-maps-engine`, responsável por contratos comuns, tipos fund
 - **Backend-agnóstico**: desenho que evita dependência direta de tecnologia específica (vendor, protocolo ou biblioteca externa).
 
 
+## Observação de Eventos de Lifecycle (via Observabilidade)
+
+Módulos que desejam reagir a transições de lifecycle (ex.: inicializar recursos, processar frames) podem implementar a interface `ILifecycleObserver` e registrar-se em um `LifecycleObserverAdapter`. Este adapter, por sua vez, é adicionado como um sink de observabilidade ao `EngineLifecycleController`.
+
+Este design mantém o core completamente agnóstico em relação aos consumidores de eventos, utilizando o pipeline canônico de observabilidade para distribuir notificações.
+
+
+
+
+
 ## Guia de uso do lifecycle (host apps)
 
 Para um walkthrough objetivo com fluxo nominal, cenários de erro e recomendações de tratamento no app host, consulte:
