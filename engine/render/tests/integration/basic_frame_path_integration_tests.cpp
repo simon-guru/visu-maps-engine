@@ -1,4 +1,6 @@
 #include <cassert>
+#include <vector>
+#include <optional>
 
 #include "engine/gfx/commands/factory.hpp"
 #include "engine/gfx/contracts/factory.hpp"
